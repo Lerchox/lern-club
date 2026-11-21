@@ -102,6 +102,56 @@ Object.assign(window.I18N.es, {
   "map.source": "Base cartográfica: © swisstopo",
 });
 
+/* Sprüche: Zwillinge verbinden */
+Object.assign(window.I18N.de, {
+  "id.match": "Zwillinge verbinden",
+  "id.matchHint": "Jeder Spruch hat einen Zwilling auf Englisch und auf Spanisch. Tippe in jeder Spalte auf den passenden Spruch, bis die drei verbunden sind.",
+  "id.matchProgress": "{a} von {b} verbunden",
+  "id.matchDone": "Alle Zwillinge verbunden!",
+  "id.matchPerfect": "Ohne einen einzigen Fehler. Stark!",
+  "id.matchError1": "Mit einem Fehlversuch. Fast perfekt!",
+  "id.matchErrors": "Mit {n} Fehlversuchen. Beim nächsten Mal schaffst du es fehlerfrei!",
+  "id.matchAgain": "Nochmal verbinden",
+  "id.favAsk": "Welcher dieser Sprüche ist dein Lieblingsspruch?",
+  "id.favConfirm": "Das ist mein Lieblingsspruch!",
+  "id.favSkip": "Überspringen",
+  "id.exampleAsk": "Möchtest du ein eigenes Beispiel mit diesem Spruch formulieren?",
+  "id.exampleYes": "Ja, gern!",
+  "id.exampleNo": "Nein, danke",
+});
+Object.assign(window.I18N.en, {
+  "id.match": "Connect the twins",
+  "id.matchHint": "Every saying has a twin in English and in Spanish. Tap the matching saying in each column until all three are connected.",
+  "id.matchProgress": "{a} of {b} connected",
+  "id.matchDone": "All twins connected!",
+  "id.matchPerfect": "Without a single mistake. Awesome!",
+  "id.matchError1": "With one wrong try. Almost perfect!",
+  "id.matchErrors": "With {n} wrong tries. Next time you'll do it perfectly!",
+  "id.matchAgain": "Connect again",
+  "id.favAsk": "Which of these sayings is your favourite?",
+  "id.favConfirm": "That's my favourite!",
+  "id.favSkip": "Skip",
+  "id.exampleAsk": "Would you like to write your own example with this saying?",
+  "id.exampleYes": "Yes, please!",
+  "id.exampleNo": "No, thanks",
+});
+Object.assign(window.I18N.es, {
+  "id.match": "Une los gemelos",
+  "id.matchHint": "Cada refrán tiene un gemelo en inglés y en español. Toca el refrán que corresponde en cada columna hasta unir los tres.",
+  "id.matchProgress": "{a} de {b} unidos",
+  "id.matchDone": "¡Todos los gemelos unidos!",
+  "id.matchPerfect": "Sin un solo error. ¡Crack!",
+  "id.matchError1": "Con un intento fallido. ¡Casi perfecto!",
+  "id.matchErrors": "Con {n} intentos fallidos. ¡La próxima vez lo haces perfecto!",
+  "id.matchAgain": "Unir otra vez",
+  "id.favAsk": "¿Cuál de estos refranes es tu favorito?",
+  "id.favConfirm": "¡Este es mi favorito!",
+  "id.favSkip": "Saltar",
+  "id.exampleAsk": "¿Quieres escribir tu propio ejemplo con este refrán?",
+  "id.exampleYes": "¡Sí, claro!",
+  "id.exampleNo": "No, gracias",
+});
+
 /* NEU!-Abzeichen & Fortschritt */
 Object.assign(window.I18N.de, { "new.badge": "NEU!", "new.tag": "NEU", "new.allDone": "Alles geschafft – Nachschub folgt!" });
 Object.assign(window.I18N.en, { "new.badge": "NEW!", "new.tag": "NEW", "new.allDone": "All done – more coming soon!" });

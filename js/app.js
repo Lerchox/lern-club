@@ -1177,7 +1177,8 @@
       <a class="back" href="#/learn">← ${t("back")}</a>
       <h1>💬 ${t("id.title")}</h1>
       <p>${t("id.intro")}</p>
-      <a class="btn primary big" href="#/sprueche/quiz">▶ ${t("id.quiz")}</a>
+      <a class="btn primary big" href="#/sprueche/match">🔗 ${t("id.match")}</a>
+      <a class="btn ghost big" href="#/sprueche/quiz">▶ ${t("id.quiz")}</a>
       <p class="fine center">${t("id.mastered", { a: idMastered(), b: IDIOMS.length })}</p>
       <h2>${t("id.collection")}</h2>
       <div class="tiles one">${IDIOMS.map((x) => {
@@ -1249,6 +1250,163 @@
       }));
       else $("#id-next").onclick = () => { i++; picked = null; draw(); };
     }
+    draw();
+  });
+
+  // Zwillinge verbinden: 3 Spalten (DE / EN / ES), je 5 Sprüche, durcheinander
+  let matchLines = null;
+  window.addEventListener("resize", () => matchLines && $("#match") && matchLines());
+  route("/sprueche/match", () => {
+    const N = Math.min(5, IDIOMS.length);
+    const pick = shuffle(IDIOMS.slice()).sort((a, b) => ((S.idioms[a.id] || {}).ok || 0) - ((S.idioms[b.id] || {}).ok || 0)).slice(0, N);
+    const cols = LANGS.map((l) => ({ l, items: shuffle(pick.slice()) }));
+    const COLORS = ["#3ec1d3", "#ff6f91", "#8bd346", "#a66cff", "#ff9f1a"];
+    const byId = (id) => IDIOMS.find((o) => o.id === id);
+    const solved = {}, miss = {};
+    let sel = [], nSolved = 0, errors = 0, busy = false, bad = null;
+
+    function draw() {
+      view.innerHTML = `
+        <a class="back" href="#/sprueche">← ${t("back")}</a>
+        <h1>🔗 ${t("id.match")}</h1>
+        <p>${t("id.matchHint")}</p>
+        <div class="match" id="match">
+          <svg class="match-lines" id="match-lines" aria-hidden="true"></svg>
+          ${cols.map((c) => `<div class="match-col"><div class="match-head">${FLAG[c.l]}</div>${c.items.map((x) => {
+            const s = solved[x.id] !== undefined, on = sel.some((p) => p.l === c.l && p.id === x.id);
+            const isBad = bad && bad.l === c.l && bad.id === x.id;
+            return `<button class="match-card${s ? " done" : ""}${on ? " on" : ""}${isBad ? " bad" : ""}" data-l="${c.l}" data-id="${x.id}" lang="${c.l}"
+              ${s ? `style="--mc:${COLORS[solved[x.id] % COLORS.length]}" disabled` : ""}>${esc(x[c.l])}</button>`;
+          }).join("")}</div>`).join("")}
+        </div>
+        <p class="fine center">${t("id.matchProgress", { a: nSolved, b: N })}</p>`;
+      matchLines = lines;
+      lines();
+      $$(".match-card").forEach((b) => (b.onclick = () => tap(b.dataset.l, b.dataset.id)));
+    }
+
+    function lines() {
+      const box = $("#match"), svg = $("#match-lines");
+      if (!box) return;
+      const R = box.getBoundingClientRect();
+      svg.setAttribute("viewBox", `0 0 ${R.width} ${R.height}`);
+      const pos = (l, id) => {
+        const r = box.querySelector(`.match-card[data-l="${l}"][data-id="${id}"]`).getBoundingClientRect();
+        return { a: r.left - R.left, b: r.right - R.left, y: r.top - R.top + r.height / 2 };
+      };
+      const seg = (p1, p2, col, dash) => {
+        const p = pos(p1.l, p1.id), q = pos(p2.l, p2.id);
+        return `<line x1="${p.b}" y1="${p.y}" x2="${q.a}" y2="${q.y}" style="stroke:${col}" stroke-width="5" stroke-linecap="round"${dash ? ' stroke-dasharray="2 9"' : ""}/>`;
+      };
+      let h = "";
+      Object.entries(solved).forEach(([id, c]) => {
+        h += seg({ l: "de", id }, { l: "en", id }, COLORS[c % COLORS.length]) + seg({ l: "en", id }, { l: "es", id }, COLORS[c % COLORS.length]);
+      });
+      const s = LANGS.map((l) => sel.find((p) => p.l === l)).filter(Boolean);
+      for (let k = 1; k < s.length; k++) h += seg(s[k - 1], s[k], "#ffd23f", true);
+      svg.innerHTML = h;
+    }
+
+    function tap(l, id) {
+      if (busy || solved[id] !== undefined) return;
+      const k = sel.findIndex((p) => p.l === l);
+      if (k >= 0) {
+        const same = sel[k].id === id;
+        sel.splice(k, 1);
+        if (same) return draw(); // nochmal tippen = abwählen
+      }
+      sel.push({ l, id });
+      if (sel.every((p) => p.id === id)) {
+        if (sel.length === 3) {
+          solved[id] = nSolved++;
+          sel = [];
+          const r = idRec(id), clean = !miss[id];
+          if (clean) r.ok++;
+          toast(cheer() + " +" + award(clean ? 3 : 1, true) + " ⭐");
+          save();
+        }
+        draw();
+        if (nSolved === N) { burst("🔗"); setTimeout(favStep, 900); }
+        return;
+      }
+      // falsch: die neue Karte wackelt und fällt wieder heraus, der Rest bleibt
+      const first = sel[0];
+      errors++;
+      miss[first.id] = (miss[first.id] || 0) + 1;
+      idRec(first.id).wrong++;
+      logMistake("spruch-verbinden", first.id + " (" + first.l + "→" + l + ")", byId(first.id)[l], byId(id)[l]);
+      bad = { l, id }; busy = true;
+      draw();
+      setTimeout(() => { sel = sel.filter((p) => !(p.l === l && p.id === id)); bad = null; busy = false; draw(); }, 700);
+    }
+
+    // Danach: Lieblingsspruch wählen, dann eigenes Beispiel
+    function favStep(chosen = null) {
+      matchLines = null;
+      view.innerHTML = `
+        <section class="card center">
+          <h1>🎉 ${t("id.matchDone")}</h1>
+          <p class="punch">${errors > 1 ? t("id.matchErrors", { n: errors }) : errors ? t("id.matchError1") : t("id.matchPerfect")}</p>
+        </section>
+        <section class="card">
+          <h2>❤️ ${t("id.favAsk")}</h2>
+          <div class="options">${pick.map((x) => `<button class="option fav-pick${chosen === x.id ? " right" : ""}" data-id="${x.id}">
+            <span class="tile-icon">${x.icon}</span> ${esc(x[S.lang])}${(S.idioms[x.id] || {}).fav ? " ❤️" : ""}</button>`).join("")}</div>
+          <button class="btn primary big" id="fav-ok" ${chosen ? "" : "disabled"}>❤️ ${t("id.favConfirm")}</button>
+          <button class="btn ghost" id="fav-skip">${t("id.favSkip")}</button>
+        </section>`;
+      $$(".fav-pick").forEach((b) => (b.onclick = () => favStep(b.dataset.id)));
+      $("#fav-ok").onclick = () => {
+        idRec(chosen).fav = true; save();
+        toast("❤️ " + byId(chosen)[S.lang]);
+        askExample(byId(chosen));
+      };
+      $("#fav-skip").onclick = finish;
+    }
+
+    function askExample(x) {
+      const bg = document.createElement("div");
+      bg.className = "modal-bg";
+      bg.innerHTML = `<div class="modal card" role="dialog" aria-modal="true">
+        <p class="idiom-quote">${x.icon} «${esc(x[S.lang])}»</p>
+        <p><b>${t("id.exampleAsk")}</b></p>
+        <div class="row"><button class="btn primary" id="ex-yes">✍️ ${t("id.exampleYes")}</button>
+          <button class="btn ghost" id="ex-no">${t("id.exampleNo")}</button></div></div>`;
+      document.body.appendChild(bg);
+      const close = () => bg.remove();
+      window.addEventListener("hashchange", close, { once: true });
+      bg.querySelector("#ex-no").onclick = () => { close(); finish(); };
+      bg.querySelector("#ex-yes").onclick = () => {
+        bg.querySelector(".modal").innerHTML = `
+          <p class="idiom-quote">${x.icon} «${esc(x[S.lang])}»</p>
+          <p class="fine">💡 ${esc(L(x.meaning))}</p>
+          <p><b>${t("id.think")}</b></p>
+          <textarea id="ex-text" rows="4" placeholder="${t("warum.placeholder")}"></textarea>
+          <div class="row"><button class="btn primary" id="ex-save">${t("save")}</button>
+            <button class="btn ghost" id="ex-cancel">${t("id.exampleNo")}</button></div>`;
+        const ta = bg.querySelector("#ex-text");
+        ta.focus();
+        bg.querySelector("#ex-cancel").onclick = () => { close(); finish(); };
+        bg.querySelector("#ex-save").onclick = () => {
+          const text = ta.value.trim();
+          if (!text) return ta.focus();
+          const first = !S.journal.some((j) => j.ref === "spruch:" + x.id);
+          S.journal.unshift({ id: Date.now(), date: new Date().toISOString(), kind: "spruch", ref: "spruch:" + x.id, prompt: x[S.lang], text });
+          const pts = first ? award(5, false) : 0;
+          checkBadges(); save();
+          toast(pts ? t("warum.saved", { n: pts }) : "✅");
+          close(); finish();
+        };
+      };
+    }
+
+    function finish() {
+      view.innerHTML = victoryHtml(t("id.matchDone"),
+        `<a class="btn primary" href="#/sprueche/match" id="m-again">🔁 ${t("id.matchAgain")}</a>
+        <a class="btn ghost" href="#/sprueche">${t("done")}</a>`, 1);
+      $("#m-again").onclick = (e) => { e.preventDefault(); render(); };
+    }
+
     draw();
   });
 
