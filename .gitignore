@@ -1,0 +1,10 @@
+# Sicherungen enthalten Tagebuch-Einträge des Kindes – nie committen
+lernclub-backup-*.json
+*.backup.json
+lernclub-bericht-*.md
+lernclub-schreibarchiv-*.md
+feedback/
+
+.DS_Store
+Thumbs.db
+.claude/

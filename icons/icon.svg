@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#6c5ce7"/>
+  <circle cx="256" cy="230" r="150" fill="#ffffff" opacity="0.14"/>
+  <!-- Doktorhut -->
+  <polygon points="256,96 440,176 256,256 72,176" fill="#ffffff"/>
+  <path d="M160 214 v70 c0 34 192 34 192 0 v-70 l-96 42 z" fill="#ffffff" opacity="0.9"/>
+  <line x1="420" y1="186" x2="420" y2="282" stroke="#fdcb6e" stroke-width="12" stroke-linecap="round"/>
+  <circle cx="420" cy="292" r="16" fill="#fdcb6e"/>
+  <!-- Stern -->
+  <polygon points="256,330 274,376 323,378 285,408 298,455 256,428 214,455 227,408 189,378 238,376" fill="#fdcb6e"/>
+</svg>
