@@ -441,7 +441,8 @@
     const fresh = isModTile && CONTENT[mod] && newIds(mod).length > 0;
     const pr = isModTile ? progressOf(mod) : null;
     const prog = pr && pr.total ? `<span class="tile-prog ${pr.done === pr.total ? "full" : ""}">${pr.done === pr.total ? "🏁 " + t("new.allDone") : `✅ ${pr.done}/${pr.total}`}</span>` : "";
-    return `<a class="tile ${focus ? "focus" : ""} ${fresh ? "fresh" : ""}" href="${href}">${focus ? `<span class="ribbon">${t("focus.badge")}</span>` : ""}${fresh ? `<span class="ribbon new">${t("new.badge")}</span>` : ""}<span class="tile-icon">${icon}</span><span><b>${t(key)}</b><small>${t(key + ".sub")}</small>${prog}${extra}</span></a>`;
+    const pulse = href === "#/woche" && weekDueToday();
+    return `<a class="tile ${focus ? "focus" : ""} ${fresh ? "fresh" : ""} ${pulse ? "pulse" : ""}" href="${href}">${focus ? `<span class="ribbon">${t("focus.badge")}</span>` : ""}${fresh ? `<span class="ribbon new">${t("new.badge")}</span>` : ""}<span class="tile-icon">${icon}</span><span><b>${t(key)}</b><small>${t(key + ".sub")}</small>${prog}${extra}</span></a>`;
   }
 
   function focusBannerHtml() {
@@ -468,13 +469,13 @@
       <p class="note en">${S.lang !== "de" ? t("enBonusActive") : t("enBonus")}</p>
       <div class="tiles">
         ${tile("#/warum", "💡", "tile.warum")}
+        ${tile("#/woche", "🗓️", "tile.week")}
         ${tile("#/kg", "🦘", "tile.kaenguru")}
         ${tile("#/pz", "🧩", "tile.puzzles")}
         ${tile("#/es", "🇪🇸", "tile.es")}
         ${tile("#/musik", "🎵", "tile.music")}
         ${tile("#/sprueche", "💬", "tile.idioms")}
         ${tile("#/karten", "🗺️", "tile.maps")}
-        ${tile("#/woche", "🗓️", "tile.week")}
         ${tile("#/journal", "📓", "tile.journal")}
         ${tile("#/archiv", "⏳", "tile.archive")}
         ${tile("#/swap", "🔄", "tile.swap")}
@@ -1467,6 +1468,11 @@
   const recapWords = (r) => words([r.new, r.hard, r.best, r.more].filter(Boolean).join(" "));
   const fmtDate = (k) => new Date(k + "T12:00:00").toLocaleDateString({ en: "en-GB", es: "es-VE" }[S.lang] || "de-CH");
 
+  /** Montag ohne Hausaufgaben-Meldung oder Freitag ohne Rückblick → die Schulwoche-Kachel pulsiert */
+  function weekDueToday() {
+    const dow = new Date().getDay(), w = weekGet(mondayKey());
+    return (dow === 1 && !(w && w.hw)) || (dow === 5 && !(w && w.recap));
+  }
   function weekBannerHtml() {
     const dow = new Date().getDay(), w = weekGet(mondayKey());
     if (dow >= 1 && dow <= 3 && !(w && w.hw)) return `<a class="banner mon" href="#/woche">📋 ${t("week.bannerMon")} →</a>`;

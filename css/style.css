@@ -540,3 +540,8 @@ main > .check { color: #fff; }
 .kg-cell.fresh::after, .club-card.fresh::after { content: "NEU"; position: absolute; top: -8px; right: -6px; background: #ff3d7f; color: #fff; font-size: 0.6rem; font-weight: 800; padding: 1px 5px; border-radius: 999px; }
 .tile-prog { display: inline-block; margin-top: 4px; font-size: 0.78rem; font-weight: 700; color: var(--muted); }
 .tile-prog.full { color: var(--good); }
+
+/* Schulwoche: montags und freitags pulsiert die Kachel, bis etwas eingetragen ist */
+.tile.pulse { animation: tilePulse 1.8s ease-in-out infinite; z-index: 1; }
+@keyframes tilePulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); box-shadow: 0 14px 30px rgba(255, 210, 63, 0.55); } }
+@media (prefers-reduced-motion: reduce) { .tile.pulse { animation: none; outline: 3px solid var(--cta); } }
