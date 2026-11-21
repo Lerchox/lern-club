@@ -1844,7 +1844,7 @@
     const M = MAPS[mk];
     return `<svg class="map map-${mk}" viewBox="0 0 ${M.w} ${M.h}" role="img" aria-label="${esc(t("map." + mk))}">
       ${M.outline ? `<defs><clipPath id="clip-${mk}"><path d="${M.outline}"/></clipPath></defs>` : ""}
-      ${M.regions.map((r) => `<path class="reg" data-id="${r.id}" d="${r.d}"><title>${esc(regName(mk, r))}</title></path>`).join("")}
+      ${M.regions.map((r) => `<path class="reg" data-id="${r.id}" d="${r.d}"></path>`).join("")}
       <path class="lake" d="${M.lakes}" ${M.outline ? `clip-path="url(#clip-${mk})"` : ""}/>
       ${M.regions.map((r) => `<text class="lbl" data-l="${r.id}" x="${r.lx}" y="${r.ly}">${esc(mk === "ch" ? r.ab : r.name)}</text>`).join("")}
     </svg>`;
