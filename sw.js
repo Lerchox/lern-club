@@ -1,5 +1,5 @@
 /* Service Worker: macht die App offline-fähig. Bei Änderungen VERSION erhöhen. */
-const VERSION = "lernclub-v6";
+const VERSION = "lernclub-v7";
 const FILES = [
   "./",
   "index.html",
@@ -9,6 +9,7 @@ const FILES = [
   "js/i18n-es.js",
   "js/i18n-extra.js",
   "js/i18n-musik.js",
+  "js/i18n-karten.js",
   "js/notation.js",
   "data/kaenguru.js",
   "data/puzzles.js",
@@ -19,6 +20,7 @@ const FILES = [
   "data/sprueche.js",
   "data/skins.js",
   "data/musik.js",
+  "data/karten.js",
   "manifest.webmanifest",
   "icons/icon.svg",
   "icons/icon-192.png",

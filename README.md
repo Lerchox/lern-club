@@ -10,8 +10,10 @@ Deutsch, Englisch und Spanisch, läuft auf Tablet und Handy, auch offline.
 - **Sprüche & Redewendungen:** 26 Weisheiten als Zwillinge in Deutsch, Englisch und Spanisch, mit wörtlicher Übersetzung und Quiz
 - **¡Español!** (Basis: Venezuela) Vokabeltrainer mit Wiederholungs-Kisten, Schreibregeln (Tilde, ñ, ¿¡) und Akzent-Detektiv
 - **Musik · mCheck:** Vorbereitung auf den Stufentest der Aargauer Musikschulen (VAM), Stufe 1–3: Basiswissen-Quiz mit Notenbild, Melodie und Rhythmus nachspielen, Intervalle und Dur/Moll hören (Töne werden im Browser erzeugt)
+- **Karten-Quiz (NMG):** Bezirke im Aargau und Kantone der Schweiz entdecken, finden und benennen, mit Bestzeit
 - **Meine Schulwoche:** montags Hausaufgaben melden (mit Abhak-Liste), freitags Wochenrückblick schreiben
 - **Schreib-Zeitreise:** alles Geschriebene über Jahre, mit erstem/neuestem/längstem Text und Wörtern pro Monat
+- **Tagesmissionen & Fokus der Woche:** jeden Tag drei Aufträge aus verschiedenen Modulen (bevorzugt lange nicht geübte) mit Bonus-Kiste; die Eltern können ein Modul mit doppelten XP hervorheben
 - **Game-Look:** Stufen (100 XP pro Stufe), 12 eigene Avatar-Skins mit Seltenheitsstufen, Spind, Siegerbildschirm
 - **Mein Warum, Rollentausch-Quiz, Ideen-Box** und ein **Elternbereich** mit PIN
 
@@ -49,6 +51,7 @@ Alle Inhalte liegen als einfache JavaScript-Dateien in `data/`:
 | `data/skins.js` | Eigene Avatar-Skins (SVG, selbst gezeichnet) und Seltenheitsfarben |
 | `data/musik.js` | mCheck: Fachausdrücke, Fragen-Generatoren, Hörübungen |
 | `js/notation.js` | Notenbild (SVG) und Klang (Web Audio) |
+| `data/karten.js` | Kartenumrisse (Bezirke Aargau, Kantone CH), vereinfacht aus swisstopo-Daten |
 | `data/kaenguru.js` | Links und Lösungsbuchstaben der Känguru-Tests |
 
 Nach Änderungen in `sw.js` die `VERSION` erhöhen, damit installierte Apps das Update laden.
@@ -74,5 +77,7 @@ Die App erinnert daran, wenn die letzte Sicherung über 30 Tage her ist.
   Dieses Projekt steht in keiner Verbindung zum Verein Känguru Schweiz.
 - **mCheck** ist der Stufentest des Verbands Aargauer Musikschulen (VAM). Die Übungen sind selbst erstellt und
   folgen den öffentlich beschriebenen Themen (https://vam-ag.ch/mcheck/basiswissen/). Keine Verbindung zum VAM.
+- **Kartendaten:** © swisstopo (swissBOUNDARIES3D, frei nutzbar als Open Government Data), bezogen über das
+  npm-Paket [swiss-maps](https://github.com/interactivethings/swiss-maps) (BSD-3-Clause) und für die App vereinfacht.
 - Der Game-Look ist eigenständig gestaltet (eigene Figuren, Farben, Begriffe). Es werden keine Figuren, Logos
   oder Namen aus kommerziellen Spielen verwendet.

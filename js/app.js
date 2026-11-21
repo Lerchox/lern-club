@@ -36,6 +36,10 @@
     idioms: {},
     log: [],
     pin: null,
+    missions: null,
+    modLast: {},
+    focus: "",
+    geo: {},
   });
 
   let S = load();
@@ -153,13 +157,59 @@
       <h1 class="victory-title">${ratio >= 0.5 ? t("game.victory") : t("game.goodFight")}</h1><p class="punch">${line}</p>${buttons}</section>`;
   }
 
-  /** Vergibt Punkte. quiz=true → Sprachen-Bonus (Englisch/Spanisch) möglich. Gibt die vergebenen Punkte zurück. */
-  function award(base, quiz) {
+  // ---------- Module, Tagesmissionen, Fokus der Woche ----------
+  /** need = so viele richtige Antworten braucht die Tagesmission */
+  const MODULES = [
+    { id: "kg", icon: "🦘", tile: "tile.kaenguru", need: 2 },
+    { id: "pz", icon: "🧩", tile: "tile.puzzles", need: 1 },
+    { id: "warum", icon: "💡", tile: "tile.warum", need: 1 },
+    { id: "club", icon: "🏛️", tile: "tile.club", need: 2 },
+    { id: "es", icon: "🇪🇸", tile: "tile.es", need: 6 },
+    { id: "musik", icon: "🎵", tile: "tile.music", need: 4 },
+    { id: "sprueche", icon: "💬", tile: "tile.idioms", need: 3 },
+    { id: "karten", icon: "🗺️", tile: "tile.maps", need: 8 },
+  ];
+  const CHEST = 15;
+  const modById = (id) => MODULES.find((m) => m.id === id);
+  const currentModule = () => { const top = location.hash.replace(/^#/, "").split("/")[1] || ""; return modById(top) ? top : null; };
+
+  /** Drei Missionen pro Tag: die zwei am längsten nicht geübten Module + eines per Zufall. Der Wochenfokus ist immer dabei. */
+  function todayMissions() {
+    const today = dayKey();
+    if (!S.missions || S.missions.day !== today) {
+      const order = shuffle(MODULES.slice()).sort((a, b) => (S.modLast[a.id] || "").localeCompare(S.modLast[b.id] || ""));
+      const pick = order.slice(0, 2);
+      const rest = order.slice(2);
+      pick.push(rest[Math.floor(Math.random() * rest.length)]);
+      if (S.focus && modById(S.focus) && !pick.some((m) => m.id === S.focus)) pick[2] = modById(S.focus);
+      S.missions = { day: today, list: pick.map((m) => ({ mod: m.id, need: m.need, have: 0 })), chest: false };
+      save();
+    }
+    return S.missions;
+  }
+
+  function trackMission(mod) {
+    const ms = todayMissions();
+    const m = ms.list.find((x) => x.mod === mod);
+    if (!m || m.have >= m.need) return;
+    m.have += 1;
+    if (m.have === m.need) setTimeout(() => { toast(t("mis.done", { mod: t(modById(mod).tile) })); burst("🎯"); }, 1800);
+    if (!ms.chest && ms.list.every((x) => x.have >= x.need)) {
+      ms.chest = true;
+      setTimeout(() => { award(CHEST, false, true); toast(t("mis.chestOpen", { n: CHEST })); burst("🎁"); }, 3400);
+    }
+  }
+
+  /** Vergibt Punkte. quiz=true → Sprachen-Bonus (Englisch/Spanisch) möglich. raw=true → kein Fokus, zählt nicht für Missionen. */
+  function award(base, quiz, raw = false) {
     let pts = base;
     if (quiz && S.lang !== "de") {
       pts = Math.round(base * EN_BONUS);
       S.counters[S.lang] = (S.counters[S.lang] || 0) + 1;
     }
+    const mod = raw ? null : currentModule();
+    if (mod && S.focus === mod) pts *= 2;
+    if (mod) { S.modLast[mod] = dayKey(); trackMission(mod); }
     const today = dayKey();
     const before = S.days[today] || 0;
     const lvlBefore = levelOf(S.points);
@@ -265,7 +315,7 @@
       if (m) {
         r.fn(...m.slice(1).map(decodeURIComponent));
         const top = hash.split("/")[1] || "home";
-        const navMap = { "": "home", learn: "learn", kg: "learn", pz: "learn", warum: "learn", journal: "learn", swap: "learn", ideas: "learn", es: "learn", sprueche: "learn", musik: "learn", woche: "learn", archiv: "learn", club: "club", me: "me", locker: "me", parents: "me" };
+        const navMap = { "": "home", learn: "learn", kg: "learn", pz: "learn", warum: "learn", journal: "learn", swap: "learn", ideas: "learn", es: "learn", sprueche: "learn", musik: "learn", karten: "learn", woche: "learn", archiv: "learn", club: "club", me: "me", locker: "me", parents: "me" };
         $$("#bottomnav a").forEach((a) => a.classList.toggle("active", a.dataset.nav === (navMap[top] || "home")));
         view.focus({ preventScroll: true });
         window.scrollTo(0, 0);
@@ -327,23 +377,45 @@
           <small>🔥 ${t("home.streak", { n: displayStreak() })} · 🃏 ${t("home.jokers", { n: S.streak.jokers })}</small></div>
       </section>
       ${openHomeworkHtml()}
+      ${focusBannerHtml()}
+      ${missionsHtml()}
       ${S.lang !== "de" ? `<p class="note en">${t("enBonusActive")}</p>` : ""}
       <div class="tiles">
+        ${tile("#/warum", "💡", "tile.warum")}
         ${tile("#/woche", "🗓️", "tile.week")}
         ${tile("#/kg", "🦘", "tile.kaenguru")}
         ${tile("#/pz", "🧩", "tile.puzzles")}
-        ${tile("#/warum", "💡", "tile.warum")}
         ${tile("#/club", "🏛️", "tile.club")}
         ${tile("#/es", "🇪🇸", "tile.es")}
         ${tile("#/musik", "🎵", "tile.music")}
         ${tile("#/sprueche", "💬", "tile.idioms")}
+        ${tile("#/karten", "🗺️", "tile.maps")}
         ${tile("#/archiv", "⏳", "tile.archive")}
       </div>`;
     bindHomework();
   });
 
   function tile(href, icon, key, extra = "") {
-    return `<a class="tile" href="${href}"><span class="tile-icon">${icon}</span><span><b>${t(key)}</b><small>${t(key + ".sub")}</small>${extra}</span></a>`;
+    const focus = S.focus && href === "#/" + S.focus;
+    return `<a class="tile ${focus ? "focus" : ""}" href="${href}">${focus ? `<span class="ribbon">${t("focus.badge")}</span>` : ""}<span class="tile-icon">${icon}</span><span><b>${t(key)}</b><small>${t(key + ".sub")}</small>${extra}</span></a>`;
+  }
+
+  function focusBannerHtml() {
+    const m = S.focus && modById(S.focus);
+    return m ? `<a class="focus-banner" href="#/${m.id}">🎯 ${t("focus.banner", { mod: m.icon + " " + t(m.tile) })}</a>` : "";
+  }
+
+  function missionsHtml() {
+    const ms = todayMissions();
+    const all = ms.list.every((x) => x.have >= x.need);
+    return `<section class="card missions"><div class="row"><h2>🎯 ${t("mis.title")}</h2><span class="chest ${all ? "open" : ""}">${all ? "🎉" : "🎁"}</span></div>
+      ${ms.list.map((x) => {
+        const m = modById(x.mod), ok = x.have >= x.need;
+        return `<a class="mission ${ok ? "done" : ""}" href="#/${m.id}"><span class="m-icon">${ok ? "✅" : m.icon}</span>
+          <span class="m-body"><b>${t("mis.do", { n: x.need, mod: t(m.tile) })}</b><span class="bar small"><span style="width:${Math.round((Math.min(x.have, x.need) / x.need) * 100)}%"></span></span></span>
+          <span class="m-count">${Math.min(x.have, x.need)}/${x.need}</span></a>`;
+      }).join("")}
+      <small class="fine">${all ? t("mis.chestOpen", { n: CHEST }) : t("mis.chest", { n: CHEST })}</small></section>`;
   }
 
   route("/learn", () => {
@@ -351,12 +423,13 @@
       <h1>${t("learn.title")}</h1>
       <p class="note en">${S.lang !== "de" ? t("enBonusActive") : t("enBonus")}</p>
       <div class="tiles">
+        ${tile("#/warum", "💡", "tile.warum")}
         ${tile("#/kg", "🦘", "tile.kaenguru")}
         ${tile("#/pz", "🧩", "tile.puzzles")}
         ${tile("#/es", "🇪🇸", "tile.es")}
         ${tile("#/musik", "🎵", "tile.music")}
         ${tile("#/sprueche", "💬", "tile.idioms")}
-        ${tile("#/warum", "💡", "tile.warum")}
+        ${tile("#/karten", "🗺️", "tile.maps")}
         ${tile("#/woche", "🗓️", "tile.week")}
         ${tile("#/journal", "📓", "tile.journal")}
         ${tile("#/archiv", "⏳", "tile.archive")}
@@ -1230,6 +1303,20 @@
     if (muLog.length) P(`- Fehler nach Bereich: ${top(cnt(muLog, (l) => l.area)).map(([k, v]) => `${k} ${v}×`).join(" · ")}`);
     P();
 
+    P("## Karten-Quiz (NMG)");
+    for (const mk of ["ag", "ch"]) {
+      const g = S.geo[mk];
+      P(`- ${mk === "ag" ? "Bezirke Aargau" : "Kantone CH"}: ${g ? `${g.ok}/${g.total} richtig · ${g.rounds} Runden · Bestzeit ${g.best ? fmtTime(g.best) : "–"}` : "noch nicht geübt"}`);
+    }
+    const geoLog = S.log.filter((l) => l.area.startsWith("karte-"));
+    if (geoLog.length) P(`- Häufig verwechselt: ${top(cnt(geoLog, (l) => l.expected + "→" + l.given)).map(([k, v]) => `${k} ${v}×`).join(" · ")}`);
+    P();
+
+    P("## Abwechslung (Missionen & Fokus)");
+    P(`- Fokus der Woche: ${S.focus ? t(modById(S.focus).tile) : "keiner"}`);
+    P(`- Zuletzt geübt: ${MODULES.map((m) => `${m.id} ${S.modLast[m.id] || "nie"}`).join(" · ")}`);
+    P();
+
     P("## Sprüche & Redewendungen");
     P(`- gemeistert (3★): ${idMastered()}/${IDIOMS.length}`);
     const favs = IDIOMS.filter((x) => S.idioms[x.id] && S.idioms[x.id].fav);
@@ -1747,6 +1834,169 @@
   route("/musik/interval", earRoute("interval", () => MUSIK.makeIntervalEar(), (c) => Sound.melody(c.midis, 0.9), (c) => (c.up ? "⬆️ " + t("mu.up") : "⬇️ " + t("mu.down"))));
   route("/musik/triad", earRoute("triad", () => MUSIK.makeTriadEar(), (c) => Sound.chord(c.midis, c.arpeggio)));
 
+  // ---------- Karten-Quiz (NMG): Bezirke Aargau, Kantone CH ----------
+  const MAP_KEYS = ["ag", "ch"];
+  const geoRec = (mk) => (S.geo[mk] = S.geo[mk] || { ok: 0, total: 0, rounds: 0, best: null });
+  function fmtTime(sec) { return Math.floor(sec / 60) + ":" + String(sec % 60).padStart(2, "0"); }
+  const regName = (mk, r) => (mk === "ch" ? `${r.name} (${r.ab})` : r.name);
+
+  function mapSvg(mk) {
+    const M = MAPS[mk];
+    return `<svg class="map map-${mk}" viewBox="0 0 ${M.w} ${M.h}" role="img" aria-label="${esc(t("map." + mk))}">
+      ${M.outline ? `<defs><clipPath id="clip-${mk}"><path d="${M.outline}"/></clipPath></defs>` : ""}
+      ${M.regions.map((r) => `<path class="reg" data-id="${r.id}" d="${r.d}"><title>${esc(regName(mk, r))}</title></path>`).join("")}
+      <path class="lake" d="${M.lakes}" ${M.outline ? `clip-path="url(#clip-${mk})"` : ""}/>
+      ${M.regions.map((r) => `<text class="lbl" data-l="${r.id}" x="${r.lx}" y="${r.ly}">${esc(mk === "ch" ? r.ab : r.name)}</text>`).join("")}
+    </svg>`;
+  }
+  function mapWrap(mk) {
+    return `<div class="map-wrap" id="map-wrap">${mapSvg(mk)}</div>
+      <div class="row map-tools"><button class="btn ghost small" id="map-zoom">🔍 ${t("map.zoom")}</button><small class="fine">${t("map.source")}</small></div>`;
+  }
+  function bindZoom() {
+    $("#map-zoom").onclick = () => $("#map-wrap").classList.toggle("zoom");
+  }
+
+  route("/karten", () => {
+    view.innerHTML = `
+      <a class="back" href="#/">← ${t("back")}</a>
+      <h1>🗺️ ${t("map.title")}</h1>
+      <p class="intro">${t("map.intro")}</p>
+      ${MAP_KEYS.map((mk) => {
+        const g = S.geo[mk];
+        return `<section class="card"><h2>${t("map." + mk)}</h2>
+          <p class="fine">${MAPS[mk].regions.length} ${t("map.regions")}${g && g.best ? " · ⏱️ " + t("map.best", { t: fmtTime(g.best) }) : ""}${g && g.total ? ` · 🎯 ${Math.round((g.ok / g.total) * 100)}%` : ""}</p>
+          <div class="tiles one">
+            ${tile(`#/karten/${mk}/explore`, "👀", "map.explore")}
+            ${tile(`#/karten/${mk}/find`, "👆", "map.find")}
+            ${tile(`#/karten/${mk}/name`, "🏷️", "map.name")}
+          </div></section>`;
+      }).join("")}`;
+  });
+
+  route("/karten/:map/explore", (mk) => {
+    if (!MAPS[mk]) return (location.hash = "#/karten");
+    view.innerHTML = `
+      <a class="back" href="#/karten">← ${t("back")}</a>
+      <h1>👀 ${t("map." + mk)}</h1>
+      <p>${t("map.exploreHint")}</p>
+      <label class="check"><input type="checkbox" id="map-all"> ${t("map.labels")}</label>
+      <p class="map-say" id="map-say">&nbsp;</p>
+      ${mapWrap(mk)}
+      <a class="btn primary big" href="#/karten/${mk}/find">👆 ${t("map.ready")}</a>`;
+    bindZoom();
+    const svg = $(".map");
+    $("#map-all").onchange = (e) => svg.classList.toggle("labels", e.target.checked);
+    svg.onclick = (e) => {
+      const p = e.target.closest(".reg"); if (!p) return;
+      const r = MAPS[mk].regions.find((x) => x.id === p.dataset.id);
+      $$(".reg.sel", svg).forEach((x) => x.classList.remove("sel"));
+      $$(".lbl.show", svg).forEach((x) => x.classList.remove("show"));
+      p.classList.add("sel");
+      $(`[data-l="${r.id}"]`, svg).classList.add("show");
+      $("#map-say").textContent = "📍 " + regName(mk, r);
+    };
+  });
+
+  route("/karten/:map/:mode", (mk, mode) => {
+    if (!MAPS[mk] || !["find", "name"].includes(mode)) return (location.hash = "#/karten");
+    const regs = MAPS[mk].regions;
+    const order = shuffle(regs.slice());
+    const g = geoRec(mk);
+    let i = 0, tries = 0, right = 0, busy = false;
+    const t0 = Date.now();
+    view.innerHTML = `
+      <a class="back" href="#/karten">← ${t("back")}</a>
+      <div class="row"><b id="map-n"></b><span class="pill">🎯 <span id="map-right">0</span></span><span class="pill">⏱️ <span id="map-time">0:00</span></span></div>
+      <div class="bar"><div id="map-bar" style="width:0%"></div></div>
+      <p class="map-ask" id="map-ask"></p>
+      <div class="options" id="map-opts"></div>
+      ${mapWrap(mk)}
+      <p class="map-say" id="map-say">&nbsp;</p>`;
+    bindZoom();
+    const svg = $(".map");
+    const regEl = (id) => $(`.reg[data-id="${id}"]`, svg);
+    const showLbl = (id) => $(`[data-l="${id}"]`, svg).classList.add("show");
+    const timer = setInterval(() => {
+      const el = $("#map-time");
+      if (!el) return clearInterval(timer);
+      el.textContent = fmtTime(Math.round((Date.now() - t0) / 1000));
+    }, 500);
+
+    function ask() {
+      if (i >= order.length) return finish();
+      tries = 0; busy = false;
+      const r = order[i];
+      $("#map-n").textContent = `${i + 1} / ${order.length}`;
+      $("#map-bar").style.width = Math.round((i / order.length) * 100) + "%";
+      $("#map-say").innerHTML = "&nbsp;";
+      if (mode === "find") {
+        $("#map-ask").innerHTML = t("map.where", { n: `<b>${esc(regName(mk, r))}</b>` });
+        return;
+      }
+      // Benennen: Gebiet leuchtet, 4 Namen zur Auswahl
+      $$(".reg.target", svg).forEach((x) => x.classList.remove("target"));
+      regEl(r.id).classList.add("target");
+      $("#map-ask").textContent = t("map.which");
+      const choices = shuffle([r, ...shuffle(regs.filter((x) => x.id !== r.id)).slice(0, 3)]);
+      $("#map-opts").innerHTML = choices.map((c) => `<button class="option" data-id="${c.id}">${esc(regName(mk, c))}</button>`).join("");
+      $$("#map-opts .option").forEach((b) => (b.onclick = () => {
+        if (busy) return; busy = true;
+        const ok = b.dataset.id === r.id;
+        $$("#map-opts .option").forEach((x) => { x.disabled = true; if (x.dataset.id === r.id) x.classList.add("right"); });
+        regEl(r.id).classList.remove("target");
+        if (ok) hit(r, 1); else { b.classList.add("wrong"); miss(r, regs.find((x) => x.id === b.dataset.id)); }
+      }));
+    }
+
+    function hit(r, nTry) {
+      right++; g.ok++; g.total++;
+      regEl(r.id).classList.add(nTry === 1 ? "ok1" : "ok2"); showLbl(r.id);
+      const pts = award(nTry === 1 ? 2 : 1, false);
+      $("#map-right").textContent = right;
+      $("#map-say").textContent = `✅ ${cheer()} ${regName(mk, r)} +${pts} ⭐`;
+      save(); i++; setTimeout(ask, 900);
+    }
+    function miss(r, given) {
+      g.total++;
+      regEl(r.id).classList.add("miss"); showLbl(r.id);
+      logMistake("karte-" + mk, r.id, r.name, given ? given.name : "?");
+      $("#map-say").textContent = `❌ ${t("map.itWas", { n: regName(mk, r) })}`;
+      save(); i++; setTimeout(ask, 1800);
+    }
+
+    svg.onclick = (e) => {
+      if (mode !== "find" || busy || i >= order.length) return;
+      const p = e.target.closest(".reg"); if (!p) return;
+      const r = order[i];
+      if (p.dataset.id === r.id) { busy = true; return hit(r, tries + 1); }
+      tries++;
+      const wrong = regs.find((x) => x.id === p.dataset.id);
+      p.classList.add("bad"); setTimeout(() => p.classList.remove("bad"), 700);
+      if (tries >= 2) { busy = true; return miss(r, wrong); }
+      $("#map-say").textContent = `🤔 ${t("map.thatWas", { n: regName(mk, wrong) })}`;
+    };
+
+    function finish() {
+      clearInterval(timer);
+      const sec = Math.round((Date.now() - t0) / 1000);
+      g.rounds++;
+      let best = "";
+      if (right === order.length && (!g.best || sec < g.best)) { g.best = sec; best = `<p><b>🏆 ${t("map.newBest")}</b></p>`; burst("🗺️"); }
+      save();
+      $("#map-bar").style.width = "100%";
+      $("#map-ask").innerHTML = ""; $("#map-opts").innerHTML = "";
+      const box = document.createElement("div");
+      box.innerHTML = victoryHtml(t("map.result", { a: right, b: order.length, t: fmtTime(sec) }) + best,
+        `<a class="btn primary" href="#/karten/${mk}/${mode}" id="map-again">🔁 ${t("map.again")}</a>
+         <a class="btn ghost" href="#/karten">${t("done")}</a>`, right / order.length);
+      view.prepend(box.firstElementChild);
+      $("#map-again").onclick = (e) => { e.preventDefault(); render(); };
+      window.scrollTo(0, 0);
+    }
+    ask();
+  });
+
   // ---------- Ich ----------
   route("/me", () => {
     const totalWords = S.journal.reduce((a, e) => a + words(e.text), 0) + words(S.myWhy || "");
@@ -1851,6 +2101,19 @@
         <button class="btn ghost" id="par-archive">📜 ${t("arc.export")}</button>
       </section>
       <section class="card">
+        <h2>🎯 ${t("parent.focus")}</h2>
+        <p class="fine">${t("parent.focusHint")}</p>
+        <select id="par-focus" class="select">
+          <option value="">${t("parent.focusNone")}</option>
+          ${MODULES.map((m) => `<option value="${m.id}" ${S.focus === m.id ? "selected" : ""}>${m.icon} ${t(m.tile)}</option>`).join("")}
+        </select>
+        <h3>${t("parent.lastUsed")}</h3>
+        <table class="table"><tbody>${MODULES.map((m) => {
+          const d = S.modLast[m.id], ago = d ? daysBetween(d, dayKey()) : null;
+          return `<tr class="${ago === null || ago > 7 ? "stale" : ""}"><td>${m.icon} ${t(m.tile)}</td><td>${d ? new Date(d).toLocaleDateString("de-CH") + (ago ? ` (${t("parent.daysAgo", { n: ago })})` : ` (${t("parent.today")})`) : t("parent.never")}</td></tr>`;
+        }).join("")}</tbody></table>
+      </section>
+      <section class="card">
         <h2>${t("parent.activity")}</h2>
         <div class="chart">${days.map((d) => `<div class="col" title="${d}: ${S.days[d] || 0}"><div style="height:${Math.round(((S.days[d] || 0) / max) * 100)}%"></div><small>${d.slice(8)}</small></div>`).join("")}</div>
         <p>⭐ ${S.points} · 🔥 ${displayStreak()} (max ${S.streak.best}) · 🃏 ${S.streak.jokers}</p>
@@ -1911,6 +2174,14 @@
       S.lastBackup = new Date().toISOString(); save();
       setTimeout(() => render(), 300);
       setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    };
+    $("#par-focus").onchange = (e) => {
+      S.focus = e.target.value;
+      // heutige Missionen neu würfeln, damit der Fokus sofort drin ist (Fortschritt bleibt erhalten, wo möglich)
+      if (S.focus && S.missions && !S.missions.list.some((x) => x.mod === S.focus) && !S.missions.chest) {
+        S.missions.list[2] = { mod: S.focus, need: modById(S.focus).need, have: 0 };
+      }
+      save(); toast("✅ " + t("parent.focus"));
     };
     $("#par-export2").onclick = () => $("#par-export").click();
     $("#par-archive").onclick = () => downloadArchive();
