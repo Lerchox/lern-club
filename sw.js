@@ -1,5 +1,5 @@
 /* Service Worker: macht die App offline-fähig. Bei Änderungen VERSION erhöhen. */
-const VERSION = "lernclub-v9";
+const VERSION = "lernclub-v10";
 const FILES = [
   "./",
   "index.html",

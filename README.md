@@ -51,10 +51,12 @@ Alle Inhalte liegen als einfache JavaScript-Dateien in `data/`:
 | `data/skins.js` | Eigene Avatar-Skins (SVG, selbst gezeichnet) und Seltenheitsfarben |
 | `data/musik.js` | mCheck: Fachausdrücke, Fragen-Generatoren, Hörübungen |
 | `js/notation.js` | Notenbild (SVG) und Klang (Web Audio) |
-| `data/karten.js` | Kartenumrisse (Bezirke Aargau, Kantone CH), vereinfacht aus swisstopo-Daten |
+| `data/karten.js` | Kartenumrisse, erzeugt mit `tools/build_karten.py` aus swisstopo-Daten |
 | `data/kaenguru.js` | Links und Lösungsbuchstaben der Känguru-Tests |
 
 Nach Änderungen in `sw.js` die `VERSION` erhöhen, damit installierte Apps das Update laden.
+
+**Inhalte erneuern** (neue Karten, Rätsel, Sprüche, Karten fürs Karten-Quiz): siehe [INHALTE.md](INHALTE.md).
 
 ## Weiterentwicklung mit Rückmeldungen
 

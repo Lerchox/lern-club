@@ -37,6 +37,7 @@
     log: [],
     pin: null,
     missions: null,
+    seen: {},
     modLast: {},
     focus: "",
     geo: {},
@@ -170,6 +171,43 @@
     { id: "karten", icon: "🗺️", tile: "tile.maps", need: 8 },
   ];
   const CHEST = 15;
+
+  /** Inhalte pro Modul: Liste mit festen ids + «erledigt». Grundlage für Fortschritt und das NEU!-Abzeichen.
+      (Musik hat keine feste Liste, die Fragen werden erzeugt.) */
+  const CONTENT = {
+    warum: { items: () => WARUM, done: (x) => !!S.warum[x.id] },
+    kg: { items: () => KAENGURU, done: (k) => kgDone(k) === k.answers.length },
+    pz: { items: () => PUZZLES, done: (p) => !!(S.pz[p.id] && S.pz[p.id].done) },
+    club: { items: () => CLUB, done: (x) => !!S.club[x.id] },
+    sprueche: { items: () => IDIOMS, done: (x) => ((S.idioms[x.id] || {}).ok || 0) >= 3 },
+    es: {
+      items: () => ES_VOCAB.map((th) => ({ id: "v:" + th.id, th })).concat(ES_RULES.map((r) => ({ id: "r:" + r.id, r }))),
+      done: (x) => (x.th ? x.th.words.every((w, i) => (S.es.words[x.th.id + ":" + i] || {}).box >= 3) : !!(S.es.rules[x.r.id] && S.es.rules[x.r.id].done)),
+    },
+    karten: { items: () => Object.keys(MAPS).map((id) => ({ id })), done: (x) => !!(S.geo[x.id] && S.geo[x.id].best) },
+  };
+  /** Beim allerersten Start gilt alles Vorhandene als «gesehen» – NEU! erscheint nur für später ergänzte Inhalte. */
+  function initSeen() {
+    let changed = false;
+    for (const [mod, c] of Object.entries(CONTENT)) {
+      if (!S.seen[mod]) { S.seen[mod] = {}; c.items().forEach((x) => (S.seen[mod][x.id] = 1)); changed = true; }
+    }
+    if (changed) save();
+  }
+  const isNew = (mod, id) => !(S.seen[mod] && S.seen[mod][id]);
+  const newIds = (mod, pre = "") => CONTENT[mod].items().filter((x) => x.id.startsWith(pre) && isNew(mod, x.id) && !CONTENT[mod].done(x)).map((x) => x.id);
+  /** Für Listen-Seiten: gibt die neuen ids zurück und merkt sie als gesehen (NEU! steht also beim ersten Besuch dran). */
+  function takeNew(mod, pre = "") {
+    const ids = newIds(mod, pre);
+    if (ids.length) { ids.forEach((id) => (S.seen[mod][id] = 1)); save(); }
+    return new Set(ids);
+  }
+  const newTag = (set, id) => (set.has(id) ? `<span class="new-tag">${t("new.tag")}</span>` : "");
+  function progressOf(mod) {
+    const c = CONTENT[mod]; if (!c) return null;
+    const items = c.items();
+    return { done: items.filter(c.done).length, total: items.length };
+  }
   const modById = (id) => MODULES.find((m) => m.id === id);
   const currentModule = () => { const top = location.hash.replace(/^#/, "").split("/")[1] || ""; return modById(top) ? top : null; };
 
@@ -307,6 +345,7 @@
   const route = (pattern, fn) => routes.push({ re: new RegExp("^" + pattern.replace(/:(\w+)/g, "([^/]+)") + "$"), fn });
 
   function render() {
+    initSeen();
     updateHeader();
     const hash = location.hash.replace(/^#/, "") || "/";
     if (!S.onboarded) return renderOnboarding();
@@ -396,8 +435,13 @@
   });
 
   function tile(href, icon, key, extra = "") {
+    const mod = href.split("/")[1];
+    const isModTile = /^#\/[a-z]+$/.test(href);
     const focus = S.focus && href === "#/" + S.focus;
-    return `<a class="tile ${focus ? "focus" : ""}" href="${href}">${focus ? `<span class="ribbon">${t("focus.badge")}</span>` : ""}<span class="tile-icon">${icon}</span><span><b>${t(key)}</b><small>${t(key + ".sub")}</small>${extra}</span></a>`;
+    const fresh = isModTile && CONTENT[mod] && newIds(mod).length > 0;
+    const pr = isModTile ? progressOf(mod) : null;
+    const prog = pr && pr.total ? `<span class="tile-prog ${pr.done === pr.total ? "full" : ""}">${pr.done === pr.total ? "🏁 " + t("new.allDone") : `✅ ${pr.done}/${pr.total}`}</span>` : "";
+    return `<a class="tile ${focus ? "focus" : ""} ${fresh ? "fresh" : ""}" href="${href}">${focus ? `<span class="ribbon">${t("focus.badge")}</span>` : ""}${fresh ? `<span class="ribbon new">${t("new.badge")}</span>` : ""}<span class="tile-icon">${icon}</span><span><b>${t(key)}</b><small>${t(key + ".sub")}</small>${prog}${extra}</span></a>`;
   }
 
   function focusBannerHtml() {
@@ -443,10 +487,11 @@
   const kgDone = (k) => Object.values(S.kg[k.id] || {}).filter((r) => r.done).length;
 
   route("/kg", () => {
+    const nw = takeNew("kg");
     const group = (lvl) => KAENGURU.filter((k) => k.level === lvl).map((k) => {
       const d = kgDone(k), n = k.answers.length;
       return `<a class="tile slim" href="#/kg/${k.id}"><span class="tile-icon">${d === n ? "🏅" : "🦘"}</span>
-        <span><b>Känguru ${k.year} · ${k.level}</b><small>${t("kg.solved", { a: d, b: n })}</small>
+        <span><b>Känguru ${k.year} · ${k.level}${newTag(nw, k.id)}</b><small>${t("kg.solved", { a: d, b: n })}</small>
         <span class="bar small"><span style="width:${Math.round((d / n) * 100)}%"></span></span></span></a>`;
     }).join("");
     view.innerHTML = `
@@ -520,6 +565,7 @@
 
   // ---------- Knobel-Werkstatt ----------
   route("/pz", () => {
+    const nw = takeNew("pz");
     view.innerHTML = `
       <a class="back" href="#/learn">← ${t("back")}</a>
       <h1>🧩 ${t("pz.title")}</h1><p>${t("pz.intro")}</p>
@@ -527,7 +573,7 @@
       <div class="kg-grid">${PUZZLES.map((p, i) => {
         const r = S.pz[p.id] || {};
         const cls = r.done ? (r.ok ? "ok" : "fail") : r.tries ? "try" : "";
-        return `<a class="kg-cell ${cls}" href="#/pz/${i}"><b>${i + 1}</b><small>${t("kg.pts", { n: p.pts })}</small></a>`;
+        return `<a class="kg-cell ${cls} ${nw.has(p.id) ? "fresh" : ""}" href="#/pz/${i}"><b>${i + 1}</b><small>${t("kg.pts", { n: p.pts })}</small></a>`;
       }).join("")}</div>`;
   });
 
@@ -569,12 +615,13 @@
 
   // ---------- Warum Schule ----------
   route("/warum", () => {
+    const nw = takeNew("warum");
     view.innerHTML = `
       <a class="back" href="#/learn">← ${t("back")}</a>
       <h1>💡 ${t("warum.title")}</h1><p>${t("warum.intro")}</p>
       <div class="tiles one">${WARUM.map((w) => `
         <a class="tile slim" href="#/warum/${w.id}"><span class="tile-icon">${w.icon}</span>
-          <span><b>${esc(L(w.title))}</b><small>${S.warum[w.id] ? "✅ " + t("warum.read") : esc(L(w.punch))}</small></span></a>`).join("")}
+          <span><b>${esc(L(w.title))}${newTag(nw, w.id)}</b><small>${S.warum[w.id] ? "✅ " + t("warum.read") : esc(L(w.punch))}</small></span></a>`).join("")}
       </div>`;
   });
 
@@ -670,6 +717,7 @@
 
   route("/club", () => {
     const { n, cur, nxt } = rankInfo();
+    const nw = takeNew("club");
     const cats = Object.keys(CLUB_CATEGORIES);
     view.innerHTML = `
       <h1>🏛️ ${t("club.title")}</h1>
@@ -685,7 +733,7 @@
       ${cats.map((c) => {
         const cards = CLUB.filter((x) => x.cat === c);
         return `<h2>${CLUB_CATEGORIES[c].icon} ${esc(L(CLUB_CATEGORIES[c]))}</h2>
-        <div class="album">${cards.map((x) => `<a class="club-card ${S.club[x.id] ? "got" : ""}" href="#/club/${x.id}">
+        <div class="album">${cards.map((x) => `<a class="club-card ${S.club[x.id] ? "got" : ""} ${nw.has(x.id) ? "fresh" : ""}" href="#/club/${x.id}">
           <span class="cc-icon">${S.club[x.id] ? x.icon : "❔"}</span><small>${esc(L(x.title))}</small></a>`).join("")}</div>`;
       }).join("")}`;
   });
@@ -858,10 +906,10 @@
       <a class="back" href="#/learn">← ${t("back")}</a>
       <h1>🇪🇸 ${t("es.title")}</h1><p>${t("es.intro")}</p>
       <div class="tiles one">
-        <a class="tile" href="#/es/vocab"><span class="tile-icon">📚</span><span><b>${t("es.vocab")}</b><small>${t("es.vocab.sub")}</small>
+        <a class="tile" href="#/es/vocab"><span class="tile-icon">📚</span><span><b>${t("es.vocab")}${newIds("es", "v:").length ? `<span class="new-tag">${t("new.tag")}</span>` : ""}</b><small>${t("es.vocab.sub")}</small>
           <small>${t("es.learned", { a: st.sure, b: st.total })} · ${t("es.due", { n: st.due })}</small>
           <span class="bar small"><span style="width:${Math.round((st.sure / st.total) * 100)}%"></span></span></span></a>
-        <a class="tile" href="#/es/rules"><span class="tile-icon">✍️</span><span><b>${t("es.rules")}</b><small>${t("es.rules.sub")}</small>
+        <a class="tile" href="#/es/rules"><span class="tile-icon">✍️</span><span><b>${t("es.rules")}${newIds("es", "r:").length ? `<span class="new-tag">${t("new.tag")}</span>` : ""}</b><small>${t("es.rules.sub")}</small>
           <small>✅ ${rulesDone} / ${ES_RULES.length}</small></span></a>
         <a class="tile" href="#/es/accent"><span class="tile-icon">🕵️</span><span><b>${t("es.accent")}</b><small>${t("es.accent.sub")}</small>
           ${S.es.accent.total ? `<small>🎯 ${S.es.accent.ok} / ${S.es.accent.total}</small>` : ""}</span></a>
@@ -872,6 +920,7 @@
   let esMode = "mix";
   route("/es/vocab", () => {
     const all = esStats("all");
+    const nw = takeNew("es", "v:");
     view.innerHTML = `
       <a class="back" href="#/es">← ${t("back")}</a>
       <h1>📚 ${t("es.vocab")}</h1>
@@ -884,7 +933,7 @@
       <h2>${t("es.themes")}</h2>
       <div class="tiles">${ES_VOCAB.map((th) => {
         const st = esStats(th.id);
-        return `<a class="tile slim" href="#/es/play/${th.id}"><span class="tile-icon">${th.icon}</span><span><b>${esc(L(th.title))}</b>
+        return `<a class="tile slim" href="#/es/play/${th.id}"><span class="tile-icon">${th.icon}</span><span><b>${esc(L(th.title))}${newTag(nw, "v:" + th.id)}</b>
           <small>${t("es.learned", { a: st.sure, b: st.total })}${st.due ? " · ⏰ " + st.due : ""}</small>
           <span class="bar small"><span style="width:${Math.round((st.sure / st.total) * 100)}%"></span></span></span></a>`;
       }).join("")}</div>`;
@@ -1004,13 +1053,14 @@
 
   // --- Schreibregeln ---
   route("/es/rules", () => {
+    const nw = takeNew("es", "r:");
     view.innerHTML = `
       <a class="back" href="#/es">← ${t("back")}</a>
       <h1>✍️ ${t("es.rules")}</h1>
       <div class="tiles one">${ES_RULES.map((r) => {
         const d = S.es.rules[r.id] && S.es.rules[r.id].done;
         return `<a class="tile slim" href="#/es/rules/${r.id}"><span class="tile-icon">${r.icon}</span>
-          <span><b>${esc(L(r.title))}</b><small>${d ? "✅" : esc(r.examples.slice(0, 3).join(" · "))}</small></span></a>`;
+          <span><b>${esc(L(r.title))}${newTag(nw, "r:" + r.id)}</b><small>${d ? "✅" : esc(r.examples.slice(0, 3).join(" · "))}</small></span></a>`;
       }).join("")}</div>`;
   });
 
@@ -1121,6 +1171,7 @@
   const stars = (n) => "★".repeat(Math.min(3, n)) + "☆".repeat(Math.max(0, 3 - n));
 
   route("/sprueche", () => {
+    const nw = takeNew("sprueche");
     view.innerHTML = `
       <a class="back" href="#/learn">← ${t("back")}</a>
       <h1>💬 ${t("id.title")}</h1>
@@ -1131,7 +1182,7 @@
       <div class="tiles one">${IDIOMS.map((x) => {
         const r = S.idioms[x.id] || {};
         return `<a class="tile slim" href="#/sprueche/${x.id}"><span class="tile-icon">${x.icon}</span>
-          <span><b>${esc(x[S.lang])}</b><small class="stars">${stars(r.ok || 0)} ${r.fav ? "❤️" : ""}</small></span></a>`;
+          <span><b>${esc(x[S.lang])}${newTag(nw, x.id)}</b><small class="stars">${stars(r.ok || 0)} ${r.fav ? "❤️" : ""}</small></span></a>`;
       }).join("")}</div>`;
   });
 
@@ -1304,9 +1355,9 @@
     P();
 
     P("## Karten-Quiz (NMG)");
-    for (const mk of ["ag", "ch"]) {
+    for (const mk of Object.keys(MAPS)) {
       const g = S.geo[mk];
-      P(`- ${mk === "ag" ? "Bezirke Aargau" : "Kantone CH"}: ${g ? `${g.ok}/${g.total} richtig · ${g.rounds} Runden · Bestzeit ${g.best ? fmtTime(g.best) : "–"}` : "noch nicht geübt"}`);
+      P(`- ${MAPS[mk].title.de}: ${g ? `${g.ok}/${g.total} richtig · ${g.rounds} Runden · Bestzeit ${g.best ? fmtTime(g.best) : "–"}` : "noch nicht geübt"}`);
     }
     const geoLog = S.log.filter((l) => l.area.startsWith("karte-"));
     if (geoLog.length) P(`- Häufig verwechselt: ${top(cnt(geoLog, (l) => l.expected + "→" + l.given)).map(([k, v]) => `${k} ${v}×`).join(" · ")}`);
@@ -1315,6 +1366,7 @@
     P("## Abwechslung (Missionen & Fokus)");
     P(`- Fokus der Woche: ${S.focus ? t(modById(S.focus).tile) : "keiner"}`);
     P(`- Zuletzt geübt: ${MODULES.map((m) => `${m.id} ${S.modLast[m.id] || "nie"}`).join(" · ")}`);
+    P(`- Inhalte erledigt (Nachschub nötig bei 100 %): ${Object.keys(CONTENT).map((m) => { const p = progressOf(m); return `${m} ${p.done}/${p.total}`; }).join(" · ")}`);
     P();
 
     P("## Sprüche & Redewendungen");
@@ -1835,18 +1887,18 @@
   route("/musik/triad", earRoute("triad", () => MUSIK.makeTriadEar(), (c) => Sound.chord(c.midis, c.arpeggio)));
 
   // ---------- Karten-Quiz (NMG): Bezirke Aargau, Kantone CH ----------
-  const MAP_KEYS = ["ag", "ch"];
+  const MAP_KEYS = Object.keys(MAPS); // neue Karten: tools/build_karten.py
   const geoRec = (mk) => (S.geo[mk] = S.geo[mk] || { ok: 0, total: 0, rounds: 0, best: null });
   function fmtTime(sec) { return Math.floor(sec / 60) + ":" + String(sec % 60).padStart(2, "0"); }
-  const regName = (mk, r) => (mk === "ch" ? `${r.name} (${r.ab})` : r.name);
+  const regName = (mk, r) => (r.ab ? `${r.name} (${r.ab})` : r.name);
 
   function mapSvg(mk) {
     const M = MAPS[mk];
-    return `<svg class="map map-${mk}" viewBox="0 0 ${M.w} ${M.h}" role="img" aria-label="${esc(t("map." + mk))}">
+    return `<svg class="map ${M.small ? "map-small" : ""}" viewBox="0 0 ${M.w} ${M.h}" role="img" aria-label="${esc(L(M.title))}">
       ${M.outline ? `<defs><clipPath id="clip-${mk}"><path d="${M.outline}"/></clipPath></defs>` : ""}
       ${M.regions.map((r) => `<path class="reg" data-id="${r.id}" d="${r.d}"></path>`).join("")}
       <path class="lake" d="${M.lakes}" ${M.outline ? `clip-path="url(#clip-${mk})"` : ""}/>
-      ${M.regions.map((r) => `<text class="lbl" data-l="${r.id}" x="${r.lx}" y="${r.ly}">${esc(mk === "ch" ? r.ab : r.name)}</text>`).join("")}
+      ${M.regions.map((r) => `<text class="lbl" data-l="${r.id}" x="${r.lx}" y="${r.ly}">${esc(r.ab || r.name)}</text>`).join("")}
     </svg>`;
   }
   function mapWrap(mk) {
@@ -1858,13 +1910,14 @@
   }
 
   route("/karten", () => {
+    const nw = takeNew("karten");
     view.innerHTML = `
       <a class="back" href="#/">← ${t("back")}</a>
       <h1>🗺️ ${t("map.title")}</h1>
       <p class="intro">${t("map.intro")}</p>
       ${MAP_KEYS.map((mk) => {
         const g = S.geo[mk];
-        return `<section class="card"><h2>${t("map." + mk)}</h2>
+        return `<section class="card"><h2>${esc(L(MAPS[mk].title))}${newTag(nw, mk)}</h2>
           <p class="fine">${MAPS[mk].regions.length} ${t("map.regions")}${g && g.best ? " · ⏱️ " + t("map.best", { t: fmtTime(g.best) }) : ""}${g && g.total ? ` · 🎯 ${Math.round((g.ok / g.total) * 100)}%` : ""}</p>
           <div class="tiles one">
             ${tile(`#/karten/${mk}/explore`, "👀", "map.explore")}
@@ -1878,7 +1931,7 @@
     if (!MAPS[mk]) return (location.hash = "#/karten");
     view.innerHTML = `
       <a class="back" href="#/karten">← ${t("back")}</a>
-      <h1>👀 ${t("map." + mk)}</h1>
+      <h1>👀 ${esc(L(MAPS[mk].title))}</h1>
       <p>${t("map.exploreHint")}</p>
       <label class="check"><input type="checkbox" id="map-all"> ${t("map.labels")}</label>
       <p class="map-say" id="map-say">&nbsp;</p>

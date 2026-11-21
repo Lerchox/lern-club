@@ -520,7 +520,7 @@ main > .lvl.compact .lvl-bar { background: rgba(255, 255, 255, 0.15); border-col
 @keyframes mapPulse { 50% { fill: #ff9f1a; } }
 .map .lake { fill: #8cc8ff; stroke: #5aa6ef; stroke-width: 0.6; vector-effect: non-scaling-stroke; pointer-events: none; }
 .map .lbl { display: none; font: 800 24px system-ui, sans-serif; fill: var(--night); stroke: #fff; stroke-width: 5px; paint-order: stroke; stroke-linejoin: round; text-anchor: middle; dominant-baseline: middle; pointer-events: none; }
-.map-ch .lbl { font-size: 17px; }
+.map-small .lbl { font-size: 17px; }
 main > .check { color: #fff; }
 .map .lbl.show, .map.labels .lbl { display: block; }
 .map-tools { margin: 6px 0 12px; }
@@ -530,3 +530,13 @@ main > .check { color: #fff; }
 .map-say { color: #fff; font-weight: 700; min-height: 1.4em; margin: 8px 0; }
 #map-opts { grid-template-columns: 1fr 1fr; }
 #map-opts:empty { display: none; }
+
+/* NEU!-Abzeichen & Fortschritt */
+.tile .ribbon.new { right: auto; left: 10px; background: #ff3d7f; color: #fff; animation: newPop 1.6s ease-in-out infinite; }
+@keyframes newPop { 50% { transform: scale(1.12); } }
+.tile.fresh { outline: 3px solid #ff3d7f; outline-offset: 2px; }
+.new-tag { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 999px; background: #ff3d7f; color: #fff; font-size: 0.7rem; font-weight: 800; font-style: normal; vertical-align: middle; letter-spacing: 0.03em; }
+.kg-cell.fresh, .club-card.fresh { position: relative; box-shadow: 0 0 0 3px #ff3d7f; }
+.kg-cell.fresh::after, .club-card.fresh::after { content: "NEU"; position: absolute; top: -8px; right: -6px; background: #ff3d7f; color: #fff; font-size: 0.6rem; font-weight: 800; padding: 1px 5px; border-radius: 999px; }
+.tile-prog { display: inline-block; margin-top: 4px; font-size: 0.78rem; font-weight: 700; color: var(--muted); }
+.tile-prog.full { color: var(--good); }

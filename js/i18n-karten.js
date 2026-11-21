@@ -101,3 +101,8 @@ Object.assign(window.I18N.es, {
   "map.zoom": "Zoom",
   "map.source": "Base cartográfica: © swisstopo",
 });
+
+/* NEU!-Abzeichen & Fortschritt */
+Object.assign(window.I18N.de, { "new.badge": "NEU!", "new.tag": "NEU", "new.allDone": "Alles geschafft – Nachschub folgt!" });
+Object.assign(window.I18N.en, { "new.badge": "NEW!", "new.tag": "NEW", "new.allDone": "All done – more coming soon!" });
+Object.assign(window.I18N.es, { "new.badge": "¡NUEVO!", "new.tag": "NUEVO", "new.allDone": "¡Todo hecho! Pronto habrá más." });

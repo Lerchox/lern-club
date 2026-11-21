@@ -8,3 +8,4 @@ feedback/
 .DS_Store
 Thumbs.db
 .claude/
+tools/.cache/
