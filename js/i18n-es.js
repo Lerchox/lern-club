@@ -135,7 +135,7 @@ Object.assign(window.I18N.es, {
   "id.literal": "literal (en alemán)", "id.meaning": "Significado", "id.fav": "Refrán favorito",
   "id.mastered": "{a} de {b} dominados",
   "id.qMeaning": "¿Qué significa este refrán?", "id.qTwin": "¿Cuál es el gemelo en {lang}?", "id.qGap": "¿Qué palabra falta?",
-  "id.think": "¿Cuándo te ha pasado esto? ¿Es verdad el refrán?",
+  "id.think": "¡Haz una oración de ejemplo con el refrán! ¿Cuándo te ha pasado esto? ¿Es verdad?",
   "lang.de": "alemán", "lang.en": "inglés", "lang.es": "español",
   "parent.report": "Descargar informe de desarrollo",
   "parent.reportJournal": "Incluir diario y «Mi porqué» (solo con su permiso)",
