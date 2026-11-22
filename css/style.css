@@ -562,3 +562,14 @@ main > .check { color: #fff; }
 .tile.pulse { animation: tilePulse 1.8s ease-in-out infinite; z-index: 1; }
 @keyframes tilePulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); box-shadow: 0 14px 30px rgba(255, 210, 63, 0.55); } }
 @media (prefers-reduced-motion: reduce) { .tile.pulse { animation: none; outline: 3px solid var(--cta); } }
+
+/* Tablet quer: mehr Breite nutzen */
+@media (orientation: landscape) and (min-width: 900px) {
+  main { max-width: 1060px; }
+  .tiles.one { grid-template-columns: 1fr 1fr; }
+}
+/* Handy quer: wenig Höhe, Leisten schlanker */
+@media (orientation: landscape) and (max-height: 500px) {
+  :root { --nav-h: 52px; }
+  .bottomnav a span { font-size: 1.2rem; }
+}
