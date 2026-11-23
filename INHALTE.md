@@ -44,6 +44,7 @@ Daran hängen Fortschritt, Punkte und das Geschriebene des Kindes.
 | Sprüche | `data/sprueche.js` | neuer Spruch mit `id` (Wort wie `fliegen`) in allen drei Sprachen |
 | Español | `data/spanisch.js` | neues Thema in `ES_VOCAB`, neue Regel in `ES_RULES`, Akzentwörter in `ES_ACCENT` |
 | Karten-Quiz | `tools/build_karten.py` | siehe unten |
+| Mathe · Item-Shop | `data/mathe.js` | neues Item in `ITEMS` (Emoji, Preisspanne, Namen in drei Sprachen); Aufgaben werden erzeugt |
 | Musik | `data/musik.js` | Fragen werden erzeugt; neue Stufen brauchen Programmierarbeit |
 
 ### Drei Sprachen

@@ -41,6 +41,7 @@
     modLast: {},
     focus: "",
     geo: {},
+    mathe: { level: 1, stats: {} },
   });
 
   let S = load();
@@ -169,6 +170,7 @@
     { id: "musik", icon: "🎵", tile: "tile.music", need: 4 },
     { id: "sprueche", icon: "💬", tile: "tile.idioms", need: 3 },
     { id: "karten", icon: "🗺️", tile: "tile.maps", need: 8 },
+    { id: "mathe", icon: "🛒", tile: "tile.math", need: 6 },
   ];
   const CHEST = 15;
 
@@ -354,7 +356,7 @@
       if (m) {
         r.fn(...m.slice(1).map(decodeURIComponent));
         const top = hash.split("/")[1] || "home";
-        const navMap = { "": "home", learn: "learn", kg: "learn", pz: "learn", warum: "learn", journal: "learn", swap: "learn", ideas: "learn", es: "learn", sprueche: "learn", musik: "learn", karten: "learn", woche: "learn", archiv: "learn", club: "club", me: "me", locker: "me", parents: "me" };
+        const navMap = { "": "home", learn: "learn", kg: "learn", pz: "learn", warum: "learn", journal: "learn", swap: "learn", ideas: "learn", es: "learn", sprueche: "learn", musik: "learn", karten: "learn", mathe: "learn", woche: "learn", archiv: "learn", club: "club", me: "me", locker: "me", parents: "me" };
         $$("#bottomnav a").forEach((a) => a.classList.toggle("active", a.dataset.nav === (navMap[top] || "home")));
         view.focus({ preventScroll: true });
         window.scrollTo(0, 0);
@@ -422,6 +424,7 @@
       <div class="tiles">
         ${tile("#/warum", "💡", "tile.warum")}
         ${tile("#/woche", "🗓️", "tile.week")}
+        ${tile("#/mathe", "🛒", "tile.math")}
         ${tile("#/kg", "🦘", "tile.kaenguru")}
         ${tile("#/pz", "🧩", "tile.puzzles")}
         ${tile("#/club", "🏛️", "tile.club")}
@@ -470,6 +473,7 @@
       <div class="tiles">
         ${tile("#/warum", "💡", "tile.warum")}
         ${tile("#/woche", "🗓️", "tile.week")}
+        ${tile("#/mathe", "🛒", "tile.math")}
         ${tile("#/kg", "🦘", "tile.kaenguru")}
         ${tile("#/pz", "🧩", "tile.puzzles")}
         ${tile("#/es", "🇪🇸", "tile.es")}
@@ -1453,6 +1457,112 @@
     };
   });
 
+  // ---------- Mathe: Item-Shop (Proportionalität / Dreisatz) ----------
+  const VB = `<svg class="vb" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="9" fill="#2f8cff" stroke="#0b4fb3" stroke-width="2"/><path d="M5.5 5.5 10 15l4.5-9.5" fill="none" stroke="#fff" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
+  const maStat = (k, ok) => { const st = (S.mathe.stats[k] = S.mathe.stats[k] || { ok: 0, total: 0 }); st.total++; if (ok) st.ok++; };
+  const itemWords = (it) => { const w = it[S.lang] || it.de; return { one: w[0], many: w[1] }; };
+
+  route("/mathe", () => {
+    const lv = S.mathe.level;
+    const all = Object.values(S.mathe.stats).reduce((a, s) => [a[0] + s.ok, a[1] + s.total], [0, 0]);
+    view.innerHTML = `
+      <a class="back" href="#/learn">← ${t("back")}</a>
+      <h1>🛒 ${t("ma.title")}</h1>
+      <p>${t("ma.intro")}</p>
+      <h2>${t("ma.level")}</h2>
+      <div class="seg" id="ma-level">${[1, 2].map((n) => `<button class="${lv === n ? "sel" : ""}" data-l="${n}">${t("ma.lv" + n)}</button>`).join("")}</div>
+      <a class="btn primary big" href="#/mathe/play">▶ ${t("ma.start")}</a>
+      ${all[1] ? `<p class="fine center">🎯 ${t("ma.stats", { a: all[0], b: all[1] })}</p>` : ""}
+      <section class="card">
+        <h2>🧠 ${t("ma.howTitle")}</h2>
+        <p>${t("ma.how")}</p>
+        <table class="ptable demo"><thead><tr><th>${t("ma.qty")}</th><th>${VB} V-Bucks</th></tr></thead>
+          <tbody><tr><td>4</td><td>1200</td></tr><tr class="arrow"><td>: 4 ↓</td><td>: 4 ↓</td></tr><tr><td>1</td><td>300</td></tr>
+          <tr class="arrow"><td>× 3 ↓</td><td>× 3 ↓</td></tr><tr><td>3</td><td><b>900</b></td></tr></tbody></table>
+      </section>`;
+    $("#ma-level").onclick = (e) => { const b = e.target.closest("[data-l]"); if (b) { S.mathe.level = Number(b.dataset.l); save(); render(); } };
+  });
+
+  route("/mathe/play", () => {
+    const lv = S.mathe.level, tasks = MATHE.makeRound(lv);
+    let i = 0, cells = 0, right = 0;
+    let st, vals, tries, tip;
+    const reset = () => { st = {}; vals = {}; tries = 0; tip = false; };
+    reset();
+
+    function draw() {
+      if (i >= tasks.length) {
+        view.innerHTML = victoryHtml(t("ma.done", { a: right, b: cells }),
+          `<a class="btn primary" href="#/mathe/play" id="ma-again">🔁 ${t("ma.again")}</a><a class="btn ghost" href="#/mathe">${t("done")}</a>`, right / Math.max(1, cells));
+        $("#ma-again").onclick = (e) => { e.preventDefault(); render(); };
+        if (right / Math.max(1, cells) >= 0.8) burst("💰");
+        return;
+      }
+      const k = tasks[i], it = k.item, w = itemWords(it);
+      const story = t("ma.story." + k.type, Object.assign({ one: w.one, many: w.many }, k.vars));
+      const finished = k.rows.every((r, j) => !r.ask || st[j] === "ok" || st[j] === "shown");
+      const cell = (r, j, key) => {
+        if (r.ask !== key) return `<td class="given">${r[key]}</td>`;
+        const s = st[j];
+        if (s === "ok") return `<td class="ok">✅ ${r[key]}</td>`;
+        if (s === "shown") return `<td class="shown"><s>${esc(vals[j] || "–")}</s> ${r[key]}</td>`;
+        return `<td><input class="pin ${s === "bad" ? "bad" : ""}" data-j="${j}" inputmode="numeric" autocomplete="off" value="${esc(vals[j] || "")}" aria-label="${key === "v" ? "V-Bucks" : t("ma.qty")}"></td>`;
+      };
+      view.innerHTML = `
+        <a class="back" href="#/mathe">← ${t("back")}</a>
+        <div class="row"><b>${i + 1} / ${tasks.length}</b><span class="pill">🎯 ${right}</span></div>
+        <div class="bar"><div style="width:${Math.round((i / tasks.length) * 100)}%"></div></div>
+        <section class="card shop">
+          <div class="shop-head"><span class="shop-item">${it.icon}</span>
+            <span class="shop-tag">${esc(w.one)}</span></div>
+          <p class="shop-story">${story}</p>
+          <table class="ptable"><thead><tr><th>${t("ma.qty")}</th><th>${VB} V-Bucks</th></tr></thead>
+            <tbody>${k.rows.map((r, j) => `<tr>${cell(r, j, "q")}${cell(r, j, "v")}</tr>`).join("")}</tbody></table>
+          ${!finished ? `
+            ${tip ? `<p class="note en">💡 ${t("ma.tip." + k.type)}</p>` : ""}
+            <div class="row"><button class="btn primary" id="ma-check">✔️ ${t("ma.check")}</button>
+              ${tip ? "" : `<button class="btn ghost" id="ma-tip">💡 ${t("ma.tipBtn")}</button>`}</div>
+            ${tries ? `<p class="fine">${t("ma.retry")}</p>` : ""}`
+          : `<div class="seen"><b>🧠 ${t("ma.way")}</b><ul class="ma-steps">${k.steps.map((s) => `<li>${esc(s)}</li>`).join("")}</ul></div>
+            <button class="btn primary big" id="ma-next">${t("next")} →</button>`}
+        </section>`;
+      $$(".pin").forEach((inp, n, arr) => {
+        inp.oninput = () => (vals[inp.dataset.j] = inp.value);
+        inp.onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); if (arr[n + 1]) arr[n + 1].focus(); else check(); } };
+      });
+      const first = $$(".pin").find((x) => x.classList.contains("bad")) || $(".pin");
+      if (first && !matchMedia("(pointer: coarse)").matches) first.focus();
+      if (finished) $("#ma-next").onclick = () => { i++; reset(); draw(); window.scrollTo(0, 0); };
+      else {
+        $("#ma-check").onclick = check;
+        if ($("#ma-tip")) $("#ma-tip").onclick = () => { tip = true; draw(); };
+      }
+    }
+
+    function check() {
+      const k = tasks[i];
+      const open = k.rows.map((r, j) => j).filter((j) => k.rows[j].ask && st[j] !== "ok" && st[j] !== "shown");
+      if (open.some((j) => !String(vals[j] || "").trim())) { toast(t("ma.fillAll")); return; }
+      tries++;
+      let pts = 0, bad = 0;
+      for (const j of open) {
+        const r = k.rows[j], ans = r[r.ask], got = Number(String(vals[j]).replace(/[^\d]/g, ""));
+        if (got === ans) {
+          st[j] = "ok"; cells++; right++; maStat(k.type, true);
+          pts += award(tries === 1 ? 2 : 1, true);
+        } else if (tries >= 2) {
+          st[j] = "shown"; cells++; maStat(k.type, false);
+          logMistake("mathe-" + k.type, `${k.item.id}: ${r.ask === "v" ? r.q + " Stk" : r.v + " VB"}`, ans, vals[j]);
+        } else { st[j] = "bad"; bad++; }
+      }
+      save();
+      if (pts) toast(cheer() + " +" + pts + " ⭐");
+      else if (bad) toast(t("ma.almost"));
+      draw();
+    }
+    draw();
+  });
+
   // ---------- Entwicklungsbericht (für Eltern → Claude) ----------
   function buildReport(withJournal) {
     const today = dayKey();
@@ -1511,6 +1621,17 @@
     P(`- gewählte Stufe: ${S.music.level} · ${Object.entries(S.music.stats).map(([k, v]) => `${k} ${v.ok}/${v.total}`).join(" · ") || "noch nichts geübt"}`);
     const muLog = S.log.filter((l) => l.area.startsWith("musik-"));
     if (muLog.length) P(`- Fehler nach Bereich: ${top(cnt(muLog, (l) => l.area)).map(([k, v]) => `${k} ${v}×`).join(" · ")}`);
+    P();
+
+    P("## Mathe: Item-Shop (Proportionalität, Dreisatz)");
+    P(`- gewählte Stufe: ${S.mathe.level === 1 ? "Rookie" : "Profi"} · ${Object.entries(S.mathe.stats).map(([k, v]) => `${k} ${v.ok}/${v.total}`).join(" · ") || "noch nichts geübt"}`);
+    P("  (A Preis für grössere Mengen · B kleinere Mengen · C Bundles · D Preis pro Stück · E wie viele fürs Budget · F beliebige Mengen über 1 Stück · G zwei Schritte)");
+    const maLog = S.log.filter((l) => l.area.startsWith("mathe-"));
+    if (maLog.length) {
+      P(`- Fehler nach Aufgabentyp: ${top(cnt(maLog, (l) => l.area.slice(6))).map(([k, v]) => `${k} ${v}×`).join(" · ")}`);
+      P("- Letzte Fehler (erwartet → eingegeben):");
+      maLog.slice(-8).forEach((l) => P(`  - ${l.area.slice(6)} ${l.item}: ${l.expected} → ${l.given}`));
+    }
     P();
 
     P("## Karten-Quiz (NMG)");

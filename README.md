@@ -10,6 +10,7 @@ Deutsch, Englisch und Spanisch, läuft auf Tablet und Handy, auch offline.
 - **Sprüche & Redewendungen:** 26 Weisheiten als Zwillinge in Deutsch, Englisch und Spanisch, mit wörtlicher Übersetzung und Quiz
 - **¡Español!** (Basis: Venezuela) Vokabeltrainer mit Wiederholungs-Kisten, Schreibregeln (Tilde, ñ, ¿¡) und Akzent-Detektiv
 - **Musik · mCheck:** Vorbereitung auf den Stufentest der Aargauer Musikschulen (VAM), Stufe 1–3: Basiswissen-Quiz mit Notenbild, Melodie und Rhythmus nachspielen, Intervalle und Dur/Moll hören (Töne werden im Browser erzeugt)
+- **Mathe · Item-Shop:** Proportionalität und Dreisatz («pro Stück», «pro Bundle») mit Preisen in V-Bucks, zufällig erzeugte Tabellen-Aufgaben in zwei Stufen
 - **Karten-Quiz (NMG):** Bezirke im Aargau und Kantone der Schweiz entdecken, finden und benennen, mit Bestzeit
 - **Meine Schulwoche:** montags Hausaufgaben melden (mit Abhak-Liste), freitags Wochenrückblick schreiben
 - **Schreib-Zeitreise:** alles Geschriebene über Jahre, mit erstem/neuestem/längstem Text und Wörtern pro Monat
@@ -51,6 +52,7 @@ Alle Inhalte liegen als einfache JavaScript-Dateien in `data/`:
 | `data/skins.js` | Eigene Avatar-Skins (SVG, selbst gezeichnet) und Seltenheitsfarben |
 | `data/musik.js` | mCheck: Fachausdrücke, Fragen-Generatoren, Hörübungen |
 | `js/notation.js` | Notenbild (SVG) und Klang (Web Audio) |
+| `data/mathe.js` | Item-Shop: Items und Aufgaben-Generator fürs Mathe-Modul |
 | `data/karten.js` | Kartenumrisse, erzeugt mit `tools/build_karten.py` aus swisstopo-Daten |
 | `data/kaenguru.js` | Links und Lösungsbuchstaben der Känguru-Tests |
 
