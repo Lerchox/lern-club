@@ -41,6 +41,7 @@ Daran hängen Fortschritt, Punkte und das Geschriebene des Kindes.
 | Känguru | `data/kaenguru.js` | neuer Jahrgang: `id` wie `2027-56`, Links zu den PDFs, Lösungsbuchstaben |
 | Knobel-Werkstatt | `data/puzzles.js` | neues Rätsel mit `id` `p16`, `p17` … |
 | Der Club | `data/club.js` | neue Karte mit `id` `c15` … und Kategorie |
+| Club-Kapitel | `data/kapitel.js` | neue Frage in einem Kapitel (`id` wie `t28`, `r18`), **richtige Antwort immer zuerst**, mit Erklärung `x`; oder ein ganz neues Kapitel mit neuer `id` (erscheint mit NEU!) |
 | Sprüche | `data/sprueche.js` | neuer Spruch mit `id` (Wort wie `fliegen`) in allen drei Sprachen |
 | Español | `data/spanisch.js` | neues Thema in `ES_VOCAB`, neue Regel in `ES_RULES`, Akzentwörter in `ES_ACCENT` |
 | Karten-Quiz | `tools/build_karten.py` | siehe unten |

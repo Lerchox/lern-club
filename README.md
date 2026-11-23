@@ -6,7 +6,7 @@ Deutsch, Englisch und Spanisch, läuft auf Tablet und Handy, auch offline.
 - **Känguru-Antwortbogen:** offizielle Känguru-Aufgaben 2022–2026 (Stufen 3/4 und 5/6) lösen und den Lösungsbuchstaben eintippen
 - **Knobel-Werkstatt:** eigene Rätsel im Känguru-Stil
 - **Warum Schule?** Befunde aus der Lern- und Motivationsforschung, kindgerecht erzählt
-- **Der Club:** Allgemeinbildung als Sammelkarten, mit Rängen vom Gast bis zum Ehrenmitglied
+- **Der Club:** Allgemeinbildung als Sammelkarten, mit Rängen vom Gast bis zum Ehrenmitglied; dazu Kapitel (Troja & Odysseus, Rom, Ägypten, Tell) mit vielen Quizfragen aus Mythen, Geschichte, Wissenschaft, Kunst & Musik und Redewendungen
 - **Sprüche & Redewendungen:** 26 Weisheiten als Zwillinge in Deutsch, Englisch und Spanisch, mit wörtlicher Übersetzung und Quiz
 - **¡Español!** (Basis: Venezuela) Vokabeltrainer mit Wiederholungs-Kisten, Schreibregeln (Tilde, ñ, ¿¡) und Akzent-Detektiv
 - **Musik · mCheck:** Vorbereitung auf den Stufentest der Aargauer Musikschulen (VAM), Stufe 1–3: Basiswissen-Quiz mit Notenbild, Melodie und Rhythmus nachspielen, Intervalle und Dur/Moll hören (Töne werden im Browser erzeugt)
@@ -46,6 +46,7 @@ Alle Inhalte liegen als einfache JavaScript-Dateien in `data/`:
 | `data/puzzles.js` | Knobelaufgaben (Frage, Optionen, Lösung, Erklärung) |
 | `data/warum.js` | «Warum Schule?»-Karten und Sprüche des Tages |
 | `data/club.js` | Club-Wissenskarten |
+| `data/kapitel.js` | Club-Kapitel mit Quizfragen und Erklärungen (DE/EN/ES) |
 | `data/spanisch.js` | Spanisch-Vokabeln, Schreibregeln und Akzentwörter |
 | `data/inhalte-es.js` | Spanische Übersetzungen der Rätsel, Warum-Karten und Club-Karten |
 | `data/sprueche.js` | Redewendungen in drei Sprachen |

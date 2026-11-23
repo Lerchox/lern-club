@@ -594,3 +594,12 @@ main > .check { color: #fff; }
 .ptable.demo { font-size: 1rem; }
 .ptable.demo tr.arrow td { color: var(--accent); font-size: 0.85rem; border: 0; padding: 0; }
 .ma-steps { margin: 6px 0 0; padding-left: 20px; font-variant-numeric: tabular-nums; }
+
+/* ---------- Club-Kapitel ---------- */
+.kap-chips { margin-top: 10px; }
+.kap-chips .chip { font-size: 0.8rem; }
+.fact { margin: 8px 0; }
+.fact p { margin: 4px 0; }
+.fact-locked { color: var(--muted); letter-spacing: 1px; }
+main > h3 { color: #fff; }
+main > .fact-locked { color: rgba(255, 255, 255, 0.8); }

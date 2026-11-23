@@ -42,6 +42,8 @@
     focus: "",
     geo: {},
     mathe: { level: 1, stats: {} },
+    kap: {},
+    kapDone: {},
   });
 
   let S = load();
@@ -180,7 +182,7 @@
     warum: { items: () => WARUM, done: (x) => !!S.warum[x.id] },
     kg: { items: () => KAENGURU, done: (k) => kgDone(k) === k.answers.length },
     pz: { items: () => PUZZLES, done: (p) => !!(S.pz[p.id] && S.pz[p.id].done) },
-    club: { items: () => CLUB, done: (x) => !!S.club[x.id] },
+    club: { items: () => CLUB.concat(CHAPTERS.map((ch) => ({ id: "k:" + ch.id, ch }))), done: (x) => (x.ch ? chapStats(x.ch).done === x.ch.qs.length : !!S.club[x.id]) },
     sprueche: { items: () => IDIOMS, done: (x) => ((S.idioms[x.id] || {}).ok || 0) >= 3 },
     es: {
       items: () => ES_VOCAB.map((th) => ({ id: "v:" + th.id, th })).concat(ES_RULES.map((r) => ({ id: "r:" + r.id, r }))),
@@ -735,9 +737,18 @@
         </div>
         ${nxt ? `<small>${t("club.next", { n: nxt.min - n, r: L(nxt) })}</small>` : ""}
       </section>
+      <h2>📚 ${t("kap.title")}</h2>
+      <p class="sub">${t("kap.intro")}</p>
+      <div class="tiles one">${CHAPTERS.map((ch) => {
+        const st = chapStats(ch), full = st.done === st.total;
+        return `<a class="tile slim" href="#/club/k/${ch.id}"><span class="tile-icon">${ch.icon}</span>
+          <span><b>${esc(L(ch.title))}${newTag(nw, "k:" + ch.id)}</b><small>${full ? "🏅 " : ""}${t("kap.progress", { a: st.done, b: st.total })}</small>
+          <span class="bar small"><span style="width:${Math.round((st.done / st.total) * 100)}%"></span></span></span></a>`;
+      }).join("")}</div>
+      <h2>🎟️ ${t("kap.cards")}</h2>
       ${cats.map((c) => {
         const cards = CLUB.filter((x) => x.cat === c);
-        return `<h2>${CLUB_CATEGORIES[c].icon} ${esc(L(CLUB_CATEGORIES[c]))}</h2>
+        return `<h3>${CLUB_CATEGORIES[c].icon} ${esc(L(CLUB_CATEGORIES[c]))}</h3>
         <div class="album">${cards.map((x) => `<a class="club-card ${S.club[x.id] ? "got" : ""} ${nw.has(x.id) ? "fresh" : ""}" href="#/club/${x.id}">
           <span class="cc-icon">${S.club[x.id] ? x.icon : "❔"}</span><small>${esc(L(x.title))}</small></a>`).join("")}</div>`;
       }).join("")}`;
@@ -746,30 +757,33 @@
   route("/club/:id", (id) => {
     const x = CLUB.find((c) => c.id === id);
     if (!x) return (location.hash = "#/club");
-    const got = !!S.club[id];
-    const rec = { tries: 0 };
+    const rec = { tries: 0, hint: false };
     const o = opts(x.opts);
     function draw(msg, wrongJ) {
+      const got = !!S.club[id];
+      const story = got || rec.hint;
       view.innerHTML = `
         <a class="back" href="#/club">← ${t("back")}</a>
         <article class="card club-detail">
-          <div class="warum-icon">${x.icon}</div>
+          <div class="warum-icon">${got ? x.icon : "❔"}</div>
           <small>${CLUB_CATEGORIES[x.cat].icon} ${esc(L(CLUB_CATEGORIES[x.cat]))}</small>
           <h1>${esc(L(x.title))}</h1>
-          <p>${esc(L(x.text))}</p>
-          <div class="seen"><b>👀 ${t("club.seen")}</b><p>${esc(L(x.seen))}</p></div>
+          ${story ? `<p>${esc(L(x.text))}</p>` : `<p class="fine">${t("club.askFirst")}</p>`}
+          ${got ? `<div class="seen"><b>👀 ${t("club.seen")}</b><p>${esc(L(x.seen))}</p></div>` : ""}
         </article>
         <section class="card">
           <h2>🎟️ ${t("club.question")}</h2>
           <p class="question">${esc(L(x.q))}</p>
-          <div class="options">${o.map((txt, j) => `<button class="option ${(S.club[id] && j === x.answer) ? "right" : ""} ${wrongJ === j ? "wrong" : ""}" data-j="${j}" ${S.club[id] ? "disabled" : ""}><b>${LETTERS[j]}</b> ${esc(txt)}</button>`).join("")}</div>
+          <div class="options">${o.map((txt, j) => `<button class="option ${(got && j === x.answer) ? "right" : ""} ${wrongJ === j ? "wrong" : ""}" data-j="${j}" ${got ? "disabled" : ""}><b>${LETTERS[j]}</b> ${esc(txt)}</button>`).join("")}</div>
           <p class="msg">${msg || (got ? "✅" : "")}</p>
+          ${!got && !rec.hint ? `<button class="btn ghost" id="club-hint">📖 ${t("club.hint")}</button>` : ""}
         </section>`;
+      if ($("#club-hint")) $("#club-hint").onclick = () => { rec.hint = true; draw(); };
       $$(".option").forEach((b) => (b.onclick = () => {
         const j = Number(b.dataset.j);
         if (j === x.answer) {
           S.club[id] = dayKey();
-          const pts = award(rec.tries === 0 ? 5 : 3, true);
+          const pts = award(rec.hint ? 2 : rec.tries === 0 ? 5 : 3, true);
           toast(t("club.unlocked", { n: pts })); burst(x.icon);
           draw(t("club.unlocked", { n: pts }));
         } else {
@@ -778,6 +792,98 @@
           draw(t("wrong"), j);
         }
       }));
+    }
+    draw();
+  });
+
+  // ---------- Club-Kapitel (grosse Themen mit vielen Fragen) ----------
+  const chapById = (id) => CHAPTERS.find((c) => c.id === id);
+  const kapOk = (q) => !!(S.kap[q.id] && S.kap[q.id].ok);
+  function chapStats(ch) { return { done: ch.qs.filter(kapOk).length, total: ch.qs.length }; }
+  const chapCats = (ch) => Object.keys(CLUB_CATEGORIES).filter((c) => ch.qs.some((q) => q.c === c));
+
+  route("/club/k/:id", (id) => {
+    const ch = chapById(id);
+    if (!ch) return (location.hash = "#/club");
+    if (isNew("club", "k:" + id)) { S.seen.club["k:" + id] = 1; save(); }
+    const st = chapStats(ch), full = st.done === st.total;
+    view.innerHTML = `
+      <a class="back" href="#/club">← ${t("back")}</a>
+      <section class="card">
+        <div class="warum-icon">${ch.icon}</div>
+        <h1>${esc(L(ch.title))}</h1>
+        <p>${esc(L(ch.intro))}</p>
+        <div class="bar"><div style="width:${Math.round((st.done / st.total) * 100)}%"></div></div>
+        <small>${full ? "🏅 " : ""}${t("kap.progress", { a: st.done, b: st.total })}</small>
+        <div class="chips kap-chips">${chapCats(ch).map((c) => {
+          const qs = ch.qs.filter((q) => q.c === c);
+          return `<span class="chip">${CLUB_CATEGORIES[c].icon} ${esc(L(CLUB_CATEGORIES[c]))} ${qs.filter(kapOk).length}/${qs.length}</span>`;
+        }).join("")}</div>
+      </section>
+      <a class="btn primary big" href="#/club/k/${id}/quiz">▶ ${full ? t("kap.review") : t("kap.start")}</a>
+      <h2>📖 ${t("kap.book")}</h2>
+      <p class="sub">${t("kap.bookHint")}</p>
+      ${chapCats(ch).map((c) => {
+        const qs = ch.qs.filter((q) => q.c === c), locked = qs.filter((q) => !kapOk(q)).length;
+        return `<h3>${CLUB_CATEGORIES[c].icon} ${esc(L(CLUB_CATEGORIES[c]))}</h3>
+          ${qs.filter(kapOk).map((q) => `<div class="card fact"><b>${esc(L(q.q))}</b><p class="good">✅ ${esc(opts(q.o)[0])}</p><p>${esc(L(q.x))}</p></div>`).join("")}
+          ${locked ? `<p class="fact-locked">${"❔".repeat(Math.min(locked, 12))} ${t("kap.locked", { n: locked })}</p>` : ""}`;
+      }).join("")}`;
+  });
+
+  route("/club/k/:id/quiz", (id) => {
+    const ch = chapById(id);
+    if (!ch) return (location.hash = "#/club");
+    const N = Math.min(8, ch.qs.length);
+    const open = shuffle(ch.qs.filter((q) => !kapOk(q)));
+    const round = open.slice(0, N).concat(shuffle(ch.qs.filter(kapOk)).slice(0, Math.max(0, N - open.length)))
+      .map((q) => ({ q, order: shuffle([0, 1, 2, 3]) }));
+    let i = 0, right = 0, picked = null;
+    function draw() {
+      if (i >= round.length) {
+        let extra = "";
+        if (chapStats(ch).done === ch.qs.length && !S.kapDone[id]) {
+          S.kapDone[id] = dayKey();
+          award(20, false, true); save();
+          extra = `</p><p class="punch">🏅 ${t("kap.complete", { n: 20 })}`;
+          setTimeout(() => burst(ch.icon), 300);
+        }
+        view.innerHTML = victoryHtml(t("kap.done", { a: right, b: round.length }) + extra,
+          `<a class="btn primary" href="#/club/k/${id}/quiz" id="kq-again">🔁 ${t("kap.again")}</a>
+          <a class="btn ghost" href="#/club/k/${id}">📖 ${t("kap.toChapter")}</a>`, right / round.length);
+        $("#kq-again").onclick = (e) => { e.preventDefault(); render(); };
+        if (right >= round.length - 1) burst("🏛️");
+        return;
+      }
+      const { q, order } = round[i], o = opts(q.o), done = picked !== null;
+      view.innerHTML = `
+        <a class="back" href="#/club/k/${id}">← ${t("back")}</a>
+        <div class="row"><b>${ch.icon} ${i + 1} / ${round.length}</b><span class="pill">🎯 ${right}</span></div>
+        <div class="bar"><div style="width:${Math.round((i / round.length) * 100)}%"></div></div>
+        <section class="card">
+          <span class="chip">${CLUB_CATEGORIES[q.c].icon} ${esc(L(CLUB_CATEGORIES[q.c]))}</span>
+          <p class="question">${esc(L(q.q))}</p>
+          <div class="options">${order.map((k, j) => {
+            let cls = "";
+            if (done && k === 0) cls = "right"; else if (done && j === picked) cls = "wrong";
+            return `<button class="option ${cls}" data-j="${j}" ${done ? "disabled" : ""}><b>${LETTERS[j]}</b> ${esc(o[k])}</button>`;
+          }).join("")}</div>
+          ${done ? `<div class="seen"><b>📖 ${t("kap.explain")}</b><p>${esc(L(q.x))}</p></div>
+            <button class="btn primary big" id="kq-next">${t("next")} →</button>` : ""}
+        </section>`;
+      if (!done) $$(".option").forEach((b) => (b.onclick = () => {
+        picked = Number(b.dataset.j);
+        const r = (S.kap[q.id] = S.kap[q.id] || { ok: 0, n: 0 });
+        r.n++;
+        if (order[picked] === 0) {
+          right++;
+          const pts = award(r.ok ? 1 : 3, true);
+          r.ok = 1;
+          toast(cheer() + " +" + pts + " ⭐");
+        } else logMistake("kapitel-" + id, q.id, o[0], o[order[picked]]);
+        save(); draw();
+      }));
+      else $("#kq-next").onclick = () => { i++; picked = null; draw(); window.scrollTo(0, 0); };
     }
     draw();
   });
@@ -1660,6 +1766,9 @@
     P("## Warum Schule & Club");
     P(`- Warum-Karten beantwortet: ${WARUM.filter((w) => S.warum[w.id]).map((w) => w.id + " " + w.title.de).join(" · ") || "–"}`);
     P(`- Club-Karten: ${Object.keys(S.club).length}/${CLUB.length}`);
+    P(`- Club-Kapitel (gemeisterte Fragen): ${CHAPTERS.map((ch) => { const st = chapStats(ch); return `${L(ch.title)} ${st.done}/${st.total}`; }).join(" · ")}`);
+    const kapLog = S.log.filter((l) => l.area.startsWith("kapitel-"));
+    if (kapLog.length) P(`- Kapitel-Fehler nach Bereich: ${top(cnt(kapLog, (l) => { const ch = chapById(l.area.slice(8)); const q = ch && ch.qs.find((x) => x.id === l.item); return q ? q.c : "?"; })).map(([k, v]) => `${k} ${v}×`).join(" · ")}`);
     P(`- Rollentausch-Fragen erfunden: ${S.swap.length}`);
     P();
 
