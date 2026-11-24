@@ -92,3 +92,8 @@ Object.assign(window.I18N.es, {
   "ma.tip.F": "Primero calcula el precio de 1 objeto (divide). Luego multiplica por la cantidad.",
   "ma.tip.G": "Primero: paquetes por objetos en cada paquete. Luego: precio entre el número de objetos.",
 });
+
+/* Probetest */
+Object.assign(window.I18N.de, { "ma.test": "Probetest wie in der Schule", "ma.testGo": "Probetest weitermachen", "ma.testLast": "Letzter Probetest: {p} von {m} Punkten, Note {n}" });
+Object.assign(window.I18N.en, { "ma.test": "School-style practice test (in German)", "ma.testGo": "Continue practice test", "ma.testLast": "Last practice test: {p} of {m} points, grade {n}" });
+Object.assign(window.I18N.es, { "ma.test": "Examen de prueba como en la escuela (en alemán)", "ma.testGo": "Continuar examen de prueba", "ma.testLast": "Último examen: {p} de {m} puntos, nota {n}" });

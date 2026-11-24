@@ -46,6 +46,7 @@ Daran hängen Fortschritt, Punkte und das Geschriebene des Kindes.
 | Español | `data/spanisch.js` | neues Thema in `ES_VOCAB`, neue Regel in `ES_RULES`, Akzentwörter in `ES_ACCENT` |
 | Karten-Quiz | `tools/build_karten.py` | siehe unten |
 | Mathe · Item-Shop | `data/mathe.js` | neues Item in `ITEMS` (Emoji, Preisspanne, Namen in drei Sprachen); Aufgaben werden erzeugt |
+| Mathe-Probetest | `data/mathe-test.js` | 10 Aufgabentypen im Stil der Schulprüfung, Zahlen werden jedes Mal neu erzeugt; neue Aufgabe = neuer Block in `make()` |
 | Musik | `data/musik.js` | Fragen werden erzeugt; neue Stufen brauchen Programmierarbeit |
 
 ### Drei Sprachen

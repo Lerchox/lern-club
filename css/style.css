@@ -603,3 +603,36 @@ main > .check { color: #fff; }
 .fact-locked { color: var(--muted); letter-spacing: 1px; }
 main > h3 { color: #fff; }
 main > .fact-locked { color: rgba(255, 255, 255, 0.8); }
+
+/* ---------- Mathe: Probetest ---------- */
+.t-task { padding-top: 12px; }
+.t-head { display: flex; align-items: center; gap: 8px; font-size: 1.1rem; }
+.t-level { font-size: 0.72rem; font-weight: 700; border-radius: 999px; padding: 2px 8px; background: #fff4c2; color: #7a5b00; }
+.t-level.E { background: #e3ecff; color: #1d4fb8; }
+.t-pts { margin-left: auto; font-weight: 700; color: var(--muted); }
+.t-pts b { color: var(--accent); font-size: 1.15rem; }
+.t-title { font-weight: 700; }
+.t-scroll { overflow-x: auto; margin: 8px 0; }
+.ttable { border-collapse: collapse; min-width: 100%; font-variant-numeric: tabular-nums; }
+.ttable th, .ttable td { border: 1px solid #d8d8e4; padding: 6px 8px; text-align: center; white-space: nowrap; }
+.ttable th { background: #f1f1f7; }
+.t-in { width: 100%; min-width: 80px; max-width: 150px; font: inherit; font-weight: 700; text-align: center; padding: 6px; border: 2px solid #d8d8e4; border-radius: 8px; background: #fff8dc; }
+.t-in:focus { outline: none; border-color: var(--cta); }
+.t-in.op { max-width: 90px; }
+select.t-in { max-width: 170px; }
+.t-lines p { line-height: 2.4; }
+.t-lines .t-in { display: inline-block; width: 110px; }
+.t-ok { color: var(--good); font-weight: 800; white-space: nowrap; }
+.t-bad { color: var(--bad); font-weight: 800; white-space: nowrap; }
+.t-bad s { color: var(--muted); font-weight: 400; margin-right: 4px; }
+.t-offers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 8px 0; }
+.t-offer { display: flex; flex-direction: column; align-items: center; background: #f7f7fb; border-radius: 12px; padding: 8px; text-align: center; }
+.t-offer span { font-size: 1.8rem; }
+.t-offer small { font-weight: 700; }
+.strahl { min-width: 560px; display: grid; gap: 4px; }
+.strahl .s-row, .strahl .s-line { display: grid; grid-template-columns: repeat(var(--n), 1fr); text-align: center; align-items: center; font-weight: 700; }
+.strahl .s-row .t-in { max-width: 88px; min-width: 60px; }
+.strahl .s-line { border-top: 3px solid var(--text); margin: 6px 0; }
+.strahl .s-line i { display: block; height: 16px; width: 3px; background: var(--text); margin: -9px auto 0; }
+.t-result h2 { font-size: 2rem; }
+.t-weak { text-align: left; }

@@ -41,7 +41,7 @@
     modLast: {},
     focus: "",
     geo: {},
-    mathe: { level: 1, stats: {} },
+    mathe: { level: 1, stats: {}, tests: [], testDraft: null },
     kap: {},
     kapDone: {},
   });
@@ -1578,6 +1578,8 @@
       <h2>${t("ma.level")}</h2>
       <div class="seg" id="ma-level">${[1, 2].map((n) => `<button class="${lv === n ? "sel" : ""}" data-l="${n}">${t("ma.lv" + n)}</button>`).join("")}</div>
       <a class="btn primary big" href="#/mathe/play">▶ ${t("ma.start")}</a>
+      <a class="btn ghost big" href="#/mathe/test">📝 ${S.mathe.testDraft && !S.mathe.testDraft.done ? t("ma.testGo") : t("ma.test")}</a>
+      ${(S.mathe.tests || []).length ? `<p class="fine center">${t("ma.testLast", { p: S.mathe.tests[S.mathe.tests.length - 1].pts, m: S.mathe.tests[S.mathe.tests.length - 1].max, n: S.mathe.tests[S.mathe.tests.length - 1].note })}</p>` : ""}
       ${all[1] ? `<p class="fine center">🎯 ${t("ma.stats", { a: all[0], b: all[1] })}</p>` : ""}
       <section class="card">
         <h2>🧠 ${t("ma.howTitle")}</h2>
@@ -1587,6 +1589,95 @@
           <tr class="arrow"><td>× 3 ↓</td><td>× 3 ↓</td></tr><tr><td>3</td><td><b>900</b></td></tr></tbody></table>
       </section>`;
     $("#ma-level").onclick = (e) => { const b = e.target.closest("[data-l]"); if (b) { S.mathe.level = Number(b.dataset.l); save(); render(); } };
+  });
+
+  // ---------- Mathe: Probetest (wie in der Schule, auf Deutsch) ----------
+  const SKILL_NAMES = {
+    mal: "einfache Vielfache (· 2, : 2)", teiler: "krumme Sprünge (z. B. 3 → 2, 8 → 12)", einheit: "über 1 Stück rechnen",
+    teilen: "Preis pro Stück (mit Rappen)", pack: "Packungen", luecke: "Tabellen mit Lücken", vergleich: "Preise vergleichen (pro kg)",
+    rueckwaerts: "Menge rückwärts berechnen", strahl: "doppelter Zahlenstrahl", umgekehrt: "umgekehrt proportional", pfeil: "Rechenschritte (Pfeile)",
+  };
+  function testFieldIds(tk) {
+    const out = [];
+    const walk = (c) => { if (c && c.f) out.push(c.f); else if (Array.isArray(c)) c.forEach(walk); };
+    tk.blocks.forEach((b) => walk([b.head, b.rows, b.items, b.top, b.bottom]));
+    return out;
+  }
+  function gradeTest(T) {
+    const { test, vals } = T, ok = {}, skills = {};
+    for (const [id, f] of Object.entries(test.fields)) {
+      ok[id] = MATHE_TEST.check(f, vals[id]);
+      const s = (skills[f.skill] = skills[f.skill] || [0, 0]);
+      s[1]++; if (ok[id]) s[0]++;
+    }
+    const per = test.tasks.map((tk) => { const ids = testFieldIds(tk); return Math.round((tk.pts * ids.filter((id) => ok[id]).length / ids.length) * 2) / 2; });
+    const pts = per.reduce((a, b) => a + b, 0);
+    return { ok, per, pts, note: Math.round((1 + (5 * pts) / test.max) * 4) / 4, skills };
+  }
+
+  route("/mathe/test", () => {
+    let T = S.mathe.testDraft;
+    if (!T) { T = S.mathe.testDraft = { test: MATHE_TEST.make(), vals: {}, done: false }; save(); }
+    const { test } = T;
+    const res = T.done ? gradeTest(T) : null;
+    const fieldHtml = (id) => {
+      const f = test.fields[id], v = T.vals[id] || "";
+      if (res) return res.ok[id] ? `<span class="t-ok">✅ ${esc(v)}</span>` : `<span class="t-bad">${v ? `<s>${esc(v)}</s> ` : ""}${esc(f.show)}</span>`;
+      if (f.kind === "choice") return `<select class="t-in" data-f="${id}"><option value="">…</option>${f.options.map((o) => `<option ${v === o ? "selected" : ""}>${esc(o)}</option>`).join("")}</select>`;
+      return `<input class="t-in ${f.kind === "op" ? "op" : ""}" data-f="${id}" ${f.kind === "op" ? 'placeholder="?"' : 'inputmode="decimal"'} autocomplete="off" value="${esc(v)}">`;
+    };
+    const cell = (c) => (c && c.f ? fieldHtml(c.f) : esc(c));
+    const blockHtml = (b) => {
+      if (b.kind === "text") return `<p>${esc(b.text)}</p>`;
+      if (b.kind === "lines") return `<div class="t-lines">${b.items.map((parts) => `<p>${parts.map(cell).join(" ")}</p>`).join("")}</div>`;
+      if (b.kind === "offers") return `<div class="t-offers">${b.items.map((o) => `<div class="t-offer"><span>${o.icon}</span><b>${esc(o.name)}</b><small>${esc(o.text)}</small></div>`).join("")}</div>`;
+      if (b.kind === "strahl") return `<div class="t-scroll"><div class="strahl" style="--n:${b.top.length}">
+        <div class="s-row">${b.top.map((c) => `<span>${cell(c)}</span>`).join("")}</div>
+        <div class="s-line">${b.top.map(() => "<i></i>").join("")}</div>
+        <div class="s-row">${b.bottom.map((c) => `<span>${cell(c)}</span>`).join("")}</div></div></div>`;
+      return `<div class="t-scroll"><table class="ttable ${b.cls || ""}"><thead><tr>${b.head.map((h) => `<th>${cell(h)}</th>`).join("")}</tr></thead>
+        <tbody>${b.rows.map((r) => `<tr>${r.map((c) => `<td>${cell(c)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+    };
+    const weak = res ? Object.entries(res.skills).filter(([, s]) => s[0] < s[1]).sort((a, b) => a[1][0] / a[1][1] - b[1][0] / b[1][1]) : [];
+    view.innerHTML = `
+      <a class="back" href="#/mathe">← ${t("back")}</a>
+      <h1>📝 Probetest: Proportionalität</h1>
+      ${res ? `<section class="card center t-result">
+          <p class="punch">${res.pts} von ${test.max} Punkten</p>
+          <h2>Probenote ${res.note.toFixed(2).replace(/0$/, "")}</h2>
+          ${weak.length ? `<p><b>Das üben wir noch:</b></p><ul class="t-weak">${weak.map(([k, s]) => `<li>${esc(SKILL_NAMES[k] || k)}: ${s[0]} von ${s[1]} richtig</li>`).join("")}</ul>`
+            : `<p>🏆 Alles richtig!</p>`}
+          <p class="fine">Unter jeder Aufgabe steht jetzt, wie man rechnet.</p></section>`
+        : `<p>Wie eine richtige Prüfung: Löse alle Aufgaben in Ruhe, rechne auf einem Blatt mit und gib erst am Schluss ab. Dein Test wird gespeichert, du kannst auch später weitermachen.</p>
+          <p class="note en">💡 Der Trick für krumme Sprünge wie 3 → 2: zuerst auf 1 zurückrechnen (oder auf einen gemeinsamen Teiler), dann wieder hinauf.</p>`}
+      ${test.tasks.map((tk, i) => `
+        <section class="card t-task">
+          <div class="t-head"><b>${tk.n}.</b><span class="t-level ${tk.level}">${tk.level === "G" ? "Grundanforderung" : "Erweiterte Anforderung"}</span>
+            <span class="t-pts">${res ? `<b>${res.per[i]}</b> / ` : ""}${tk.pts} P.</span></div>
+          <p class="t-title">${esc(tk.title)}</p>
+          ${tk.blocks.map(blockHtml).join("")}
+          ${res ? `<div class="seen"><b>🧠 So rechnest du</b><ul class="ma-steps">${tk.steps.map((s) => `<li>${esc(s)}</li>`).join("")}</ul></div>` : ""}
+        </section>`).join("")}
+      ${res ? `<button class="btn primary big" id="t-new">🔁 Neuen Test machen</button><a class="btn ghost" href="#/mathe">${t("done")}</a>`
+        : `<button class="btn primary big" id="t-submit">✔️ Test abgeben</button><button class="btn ghost" id="t-new">Neuen Test erzeugen</button>`}`;
+    $$(".t-in").forEach((el) => (el.oninput = el.onchange = () => { T.vals[el.dataset.f] = el.value; save(); }));
+    $("#t-new").onclick = () => {
+      if (!res && Object.values(T.vals).some((v) => v) && !confirm("Neuen Test erzeugen? Deine Eingaben in diesem Test gehen verloren.")) return;
+      S.mathe.testDraft = null; save(); render();
+    };
+    if ($("#t-submit")) $("#t-submit").onclick = () => {
+      const empty = Object.keys(test.fields).filter((id) => !String(T.vals[id] || "").trim()).length;
+      if (empty && !confirm(`Noch ${empty} Felder sind leer. Trotzdem abgeben?`)) return;
+      T.done = true;
+      const r = gradeTest(T);
+      S.mathe.tests = (S.mathe.tests || []).concat([{ d: dayKey(), pts: r.pts, max: test.max, note: r.note, skills: r.skills }]).slice(-20);
+      for (const [id, f] of Object.entries(test.fields)) if (!r.ok[id]) logMistake("mathetest-" + f.skill, id, f.show, T.vals[id] || "–");
+      const stars = award(Math.round(r.pts), true);
+      save();
+      toast(`+${stars} ⭐`);
+      if (r.note >= 5.5) burst("🏆");
+      render();
+    };
   });
 
   route("/mathe/play", () => {
@@ -1732,6 +1823,13 @@
     P("## Mathe: Item-Shop (Proportionalität, Dreisatz)");
     P(`- gewählte Stufe: ${S.mathe.level === 1 ? "Rookie" : "Profi"} · ${Object.entries(S.mathe.stats).map(([k, v]) => `${k} ${v.ok}/${v.total}`).join(" · ") || "noch nichts geübt"}`);
     P("  (A Preis für grössere Mengen · B kleinere Mengen · C Bundles · D Preis pro Stück · E wie viele fürs Budget · F beliebige Mengen über 1 Stück · G zwei Schritte)");
+    const tests = S.mathe.tests || [];
+    if (tests.length) {
+      P(`- Probetests (Schulstil): ${tests.slice(-5).map((x) => `${x.d}: ${x.pts}/${x.max} P., Note ${x.note}`).join(" · ")}`);
+      const sk = {};
+      tests.slice(-3).forEach((x) => Object.entries(x.skills).forEach(([k, v]) => { sk[k] = sk[k] || [0, 0]; sk[k][0] += v[0]; sk[k][1] += v[1]; }));
+      P(`- Fertigkeiten (letzte 3 Tests): ${Object.entries(sk).sort((a, b) => a[1][0] / a[1][1] - b[1][0] / b[1][1]).map(([k, v]) => `${SKILL_NAMES[k] || k} ${v[0]}/${v[1]}`).join(" · ")}`);
+    }
     const maLog = S.log.filter((l) => l.area.startsWith("mathe-"));
     if (maLog.length) {
       P(`- Fehler nach Aufgabentyp: ${top(cnt(maLog, (l) => l.area.slice(6))).map(([k, v]) => `${k} ${v}×`).join(" · ")}`);
