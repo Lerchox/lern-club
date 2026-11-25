@@ -39,7 +39,7 @@ Daran hängen Fortschritt, Punkte und das Geschriebene des Kindes.
 | Warum Schule? | `data/warum.js` (`WARUM`) | neue Karte mit `id`, Titel, Punchline, Geschichte, Quelle, Schreibfrage |
 | Spruch des Tages | `data/warum.js` (`PUNCHLINES`) | eine Zeile in die Listen `de` und `en`, die spanische in `data/inhalte-es.js` |
 | Känguru | `data/kaenguru.js` | neuer Jahrgang: `id` wie `2027-56`, Links zu den PDFs, Lösungsbuchstaben |
-| Knobel-Werkstatt | `data/puzzles.js` | neues Rätsel mit `id` `p16`, `p17` … |
+| Knobel-Werkstatt | `data/puzzles.js` | neues Rätsel mit eigener `id` und `set` (Nummer aus `PUZZLE_SETS`); neuer Satz: Eintrag in `PUZZLE_SETS` |
 | Der Club | `data/club.js` | neue Karte mit `id` `c15` … und Kategorie |
 | Club-Kapitel | `data/kapitel.js` | neue Frage in einem Kapitel (`id` wie `t28`, `r18`), **richtige Antwort immer zuerst**, mit Erklärung `x`; oder ein ganz neues Kapitel mit neuer `id` (erscheint mit NEU!) |
 | Sprüche | `data/sprueche.js` | neuer Spruch mit `id` (Wort wie `fliegen`) in allen drei Sprachen |

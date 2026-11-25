@@ -577,11 +577,17 @@
       <a class="back" href="#/learn">← ${t("back")}</a>
       <h1>🧩 ${t("pz.title")}</h1><p>${t("pz.intro")}</p>
       <p class="note en">${S.lang !== "de" ? t("enBonusActive") : t("enBonus")}</p>
-      <div class="kg-grid">${PUZZLES.map((p, i) => {
-        const r = S.pz[p.id] || {};
-        const cls = r.done ? (r.ok ? "ok" : "fail") : r.tries ? "try" : "";
-        return `<a class="kg-cell ${cls} ${nw.has(p.id) ? "fresh" : ""}" href="#/pz/${i}"><b>${i + 1}</b><small>${t("kg.pts", { n: p.pts })}</small></a>`;
-      }).join("")}</div>`;
+      ${PUZZLE_SETS.map((set) => {
+        const items = PUZZLES.map((p, i) => [p, i]).filter(([p]) => (p.set || 1) === set.id);
+        const solved = items.filter(([p]) => S.pz[p.id] && S.pz[p.id].ok).length;
+        return `<h2>${set.icon} ${esc(L(set.title))} <small class="fine">${solved}/${items.length}</small>${items.some(([p]) => nw.has(p.id)) ? `<span class="new-tag">${t("new.tag")}</span>` : ""}</h2>
+        ${set.intro ? `<p class="sub">${esc(L(set.intro))}</p>` : ""}
+        <div class="kg-grid">${items.map(([p, i]) => {
+          const r = S.pz[p.id] || {};
+          const cls = r.done ? (r.ok ? "ok" : "fail") : r.tries ? "try" : "";
+          return `<a class="kg-cell ${cls} ${nw.has(p.id) ? "fresh" : ""}" href="#/pz/${i}"><b>${i + 1}</b><small>${t("kg.pts", { n: p.pts })}</small></a>`;
+        }).join("")}</div>`;
+      }).join("")}`;
   });
 
   route("/pz/:i", (iStr) => {

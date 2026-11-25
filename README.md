@@ -4,7 +4,7 @@ Eine kleine, werbefreie Lern-App für Kinder der 5. Klasse (Schweiz, Lehrplan 21
 Deutsch, Englisch und Spanisch, läuft auf Tablet und Handy, auch offline.
 
 - **Känguru-Antwortbogen:** offizielle Känguru-Aufgaben 2022–2026 (Stufen 3/4 und 5/6) lösen und den Lösungsbuchstaben eintippen
-- **Knobel-Werkstatt:** eigene Rätsel im Känguru-Stil
+- **Knobel-Werkstatt:** eigene Rätsel im Känguru-Stil in drei Sätzen (Gemischt, Detektivbüro, Känguru-Mix)
 - **Warum Schule?** Befunde aus der Lern- und Motivationsforschung, kindgerecht erzählt
 - **Der Club:** Allgemeinbildung als Sammelkarten, mit Rängen vom Gast bis zum Ehrenmitglied; dazu Kapitel (Troja & Odysseus, Rom, Ägypten, Tell) mit vielen Quizfragen aus Mythen, Geschichte, Wissenschaft, Kunst & Musik und Redewendungen
 - **Sprüche & Redewendungen:** 26 Weisheiten als Zwillinge in Deutsch, Englisch und Spanisch, mit wörtlicher Übersetzung und Quiz
